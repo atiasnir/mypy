@@ -6,6 +6,49 @@ import pandas as pd
 
 pd.options.display.width = 200
 
+def merge(df1, df2, how='inner', on=None, left_on=None, right_on=None,
+          left_index=False, right_index=False, sort=False, suffixes=('', '_y'),
+          copy=True, remove_columns=None, keep_columns=None):
+    """ Slightly nicer behavior relative to `pandas.DataFrame.join`.
+        In particular, joined columns are removed.
+
+        Parameters:
+        -----------
+        ... the rest is as per pandas documentation ... 
+
+        Examples:
+        ---------
+        >>> import pandas as pd 
+        >>> left = pd.DataFrame.from_items([('name', ['foo', 'bar']), ('id', [1, 2])])
+        >>> right = pd.DataFrame.from_items([('name1', ['foo', 'bar']), ('id2', [10, 20])])
+        >>> merge(left, right, left_on='name', right_on='name1')
+          name  id  id2
+        0  foo   1   10
+        1  bar   2   20
+   """
+    if (remove_columns is not None) and (keep_columns is not None):
+        raise ValueError("Cannot handle both 'keep' and 'remove' column specification")
+
+    result = pd.merge(df1, df2, how=how, on=on, left_on=left_on,
+                      right_on=right_on, left_index=left_index,
+                      right_index=right_index, sort=sort, suffixes=suffixes,
+                      copy=copy)
+
+    # remove columns appearing twice (due to different 'on' columns for left
+    # and right)
+    if not left_on == right_on:
+        right_cols = result.columns[df1.columns.shape[0]:]
+        right_on_cols = [x for x in right_cols for j in right_on if x.startswith(j)]
+        result.drop(right_on_cols, inplace=True, axis=1)
+
+    ### if keep_columns is not None:
+    ###     result.drop(result.columns.difference(keep_columns), inplace=True, axis=1)
+
+    ### if remove_columns is not None:
+    ###     result.drop(remove_columns, inplace=True, axis=1)
+
+    return result
+
 def split_and_stack(frame, colname, sep=None):
     """ Converts a row of delimited values in a dataframe to multiple rows.
         The resulting table is useful for joins.
