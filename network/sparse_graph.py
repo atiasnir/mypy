@@ -205,6 +205,13 @@ class SparseGraph(object):
                 [1, 0, 2, 0],
                 [0, 2, 0, 3],
                 [0, 0, 3, 0]])
+        >>> import pandas as pd
+        >>> g = SparseGraph.from_indices(pd.Series([10, 11, 12]).astype(str), pd.Series([11, 12, 13]).astype(str))
+        >>> g.data.todense()
+        matrix([[0, 1, 0, 0],
+                [1, 0, 1, 0],
+                [0, 1, 0, 1],
+                [0, 0, 1, 0]])
         """
         allnames = np.union1d(i, j)
         names = pd.Series(np.arange(allnames.shape[0],dtype=np.int), allnames)
@@ -212,7 +219,7 @@ class SparseGraph(object):
         if data is None:
             data = np.ones(len(i), dtype=np.int)
 
-        smatrix = csr_matrix((data, (names[i], names[j])), shape=(allnames.shape[0], allnames.shape[0]))
+        smatrix = csr_matrix((data, (names.loc[i], names.loc[j])), shape=(allnames.shape[0], allnames.shape[0]))
         data = smatrix if not symmetric else smatrix + smatrix.T
 
         return SparseGraph(data, names)
