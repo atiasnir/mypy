@@ -8,13 +8,19 @@ pd.options.display.width = 200
 
 def merge(df1, df2, how='inner', on=None, left_on=None, right_on=None,
           left_index=False, right_index=False, sort=False, suffixes=('', '_y'),
-          copy=True, remove_columns=None, keep_columns=None):
+          copy=True):
     """ Slightly nicer behavior relative to `pandas.DataFrame.join`.
-        In particular, joined columns are removed.
+        In particular:
+        - joined columns are removed.
+        - default suffix for the left table is empty
+
+        Maybe used as drop-in replacement for the built-in pandas
+        `merge` as follows:
+        pd.DataFrame.merge = merge
 
         Parameters:
         -----------
-        ... the rest is as per pandas documentation ... 
+        ... as per pandas documentation ... 
 
         Examples:
         ---------
@@ -25,10 +31,7 @@ def merge(df1, df2, how='inner', on=None, left_on=None, right_on=None,
           name  id  id2
         0  foo   1   10
         1  bar   2   20
-   """
-    if (remove_columns is not None) and (keep_columns is not None):
-        raise ValueError("Cannot handle both 'keep' and 'remove' column specification")
-
+    """
     result = pd.merge(df1, df2, how=how, on=on, left_on=left_on,
                       right_on=right_on, left_index=left_index,
                       right_index=right_index, sort=sort, suffixes=suffixes,
@@ -36,16 +39,12 @@ def merge(df1, df2, how='inner', on=None, left_on=None, right_on=None,
 
     # remove columns appearing twice (due to different 'on' columns for left
     # and right)
-    if not left_on == right_on:
+    if left_on != right_on:
+        if not hasattr(right_on, '__iter__'):
+            right_on = (right_on,)
         right_cols = result.columns[df1.columns.shape[0]:]
         right_on_cols = [x for x in right_cols for j in right_on if x.startswith(j)]
         result.drop(right_on_cols, inplace=True, axis=1)
-
-    ### if keep_columns is not None:
-    ###     result.drop(result.columns.difference(keep_columns), inplace=True, axis=1)
-
-    ### if remove_columns is not None:
-    ###     result.drop(remove_columns, inplace=True, axis=1)
 
     return result
 
