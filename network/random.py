@@ -24,7 +24,7 @@ def geometric(n, threshold=0.5, dim=5):
     ---------
     >>> import numpy as np 
     >>> np.random.seed(2)
-    >>> geometric(5,dim=3).todense()
+    >>> geometric(5, dim=3).todense()
     matrix([[ 0.,  1.,  0.,  0.,  0.],
             [ 1.,  0.,  1.,  1.,  1.],
             [ 0.,  1.,  0.,  1.,  1.],
@@ -115,7 +115,7 @@ def shuffle(network, directed=False, max_iterations=None, seed=0):
         network = csr_matrix(network)
 
     if max_iterations is None:
-        max_iterations = 10 * network.nnz
+        max_iterations = 100 * network.nnz
 
     return _shuffle_edges(network, directed, max_iterations, seed)
 
