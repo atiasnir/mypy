@@ -8,7 +8,7 @@ pd.options.display.width = 200
 
 def merge(df1, df2, how='inner', on=None, left_on=None, right_on=None,
           left_index=False, right_index=False, sort=False, suffixes=('', '_y'),
-          copy=True, rename=None):
+          copy=True, rename=None, **kwargs):
     """ Slightly nicer behavior relative to `pandas.DataFrame.join`.
         In particular:
         - joined columns are removed.
@@ -35,6 +35,10 @@ def merge(df1, df2, how='inner', on=None, left_on=None, right_on=None,
           name  id  bla
         0  foo   1   10
         1  bar   2   20
+        >>> merge(left, right, left_on='name', right_on='name1', id2='bla')
+          name  id  bla
+        0  foo   1   10
+        1  bar   2   20
     """
     result = pd.merge(df1, df2, how=how, on=on, left_on=left_on,
                       right_on=right_on, left_index=left_index,
@@ -49,6 +53,12 @@ def merge(df1, df2, how='inner', on=None, left_on=None, right_on=None,
         right_cols = result.columns[df1.columns.shape[0]:]
         right_on_cols = [x for x in right_cols for j in right_on if x.startswith(j)]
         result.drop(right_on_cols, inplace=True, axis=1)
+
+    if len(kwargs) > 0:
+        if rename is None:
+            rename = kwargs
+        else:
+            rename.update(kwargs)
 
     if rename is not None:
         result.rename(columns=rename, inplace=True)
