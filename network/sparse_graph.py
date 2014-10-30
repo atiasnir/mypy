@@ -4,7 +4,7 @@ import pandas as pd
 import numpy.linalg as la
 from scipy.sparse import csr_matrix, issparse, dia_matrix
 
-from ..metrics import jaccard_distance
+from ..metrics import jaccard_distance, topological_sort
 from .random import shuffle
 
 class SparseGraph(object):
@@ -118,6 +118,19 @@ class SparseGraph(object):
     def shuffle(self, directed=False, max_iterations=None, seed=0):
         return shuffle(self.data, directed=directed,
                        max_iterations=max_iterations, seed=seed)
+
+    def topological_sort(self):
+        """ Returns an ordered list of the nodes of a DAG so that 
+            all edges are from nodes with lower indices to nodes with
+            higher indices
+
+        Example:
+        --------
+
+        >>> g = SparseGraph.from_indices([7, 7, 5, 3, 3, 11, 11, 11, 8], [11, 8, 11, 8, 10, 2, 9, 10, 9], symmetric=False)
+        >>> g.topological_sort()
+        """
+        return self.names.index[topological_sort(self.data)]
 
     def pdist(self, metric='correlation', *args, **kwargs):
 #        pd.DataFrame(1.0-pairwise_distances(holstege, metric='correlation', n_jobs=-1), 
