@@ -9,8 +9,8 @@ A collection of python tools. These mainly involve:
 ### mypy.pd
 two helpers for pandas
 
-    - split_and_stack, which creates multiple rows from string delimited columns
-    - merge, which is an in-place replacement for pandas merge (can also be assigned to pandas.DataFrame.merge) which is slightly better (in my opinion, see the docs :-))
+ * split_and_stack, which creates multiple rows from string delimited columns
+ * merge, which is an in-place replacement for pandas merge (can also be assigned to pandas.DataFrame.merge) which is slightly better (in my opinion, see the docs :-))
 
 ### mypy.network
 A very useful SparseGraph class that behaves as a mixture of a sparse-matrix and a DataFrame
