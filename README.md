@@ -19,7 +19,7 @@ A very useful SparseGraph class that behaves as a mixture of a sparse-matrix and
 random graph generation (geometric and preferential attachment) and degree-preserving shuffling (requires a compilation of the accompanying c library)
 
 ### mypy.os
-Convinient cross-platform directory creation with won't blow up in you face
+Convenient cross-platform directory creation with won't blow up in you face
 
 Setup
 -----
