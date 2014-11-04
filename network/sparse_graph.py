@@ -7,6 +7,9 @@ from scipy.sparse import csr_matrix, issparse, dia_matrix
 from ..metrics import jaccard_distance, topological_sort
 from .random import shuffle
 
+from .mcl import mcl
+from .propagate import normalize, propagate
+
 class SparseGraph(object):
     """ 
     A helper class that holds an adjacency matrix in sparse matrix format.
@@ -53,11 +56,30 @@ class SparseGraph(object):
                 break
         return f 
     smooth = propagate # alias
+    
+    def mcl(self, **kwargs):
+        """ A straightforward implementation for Markov Cluster.
+
+        Parameters: 
+        -----------
+        see mcl module
+
+        Examples:
+        ---------
+        >>> g = SparseGraph.from_indices(['a', 'a', 'b', 'b', 'b', 'c', 'c', 'd', 'd', 'f', 'f', 'g'], ['b', 'd', 'd', 'c', 'e', 'd', 'e', 'e', 'f', 'g', 'h', 'h'])
+        >>> [np.sort(c) for c in g.mcl()]
+        [array(['a', 'b', 'c', 'd', 'e'], dtype=object), array(['f', 'g', 'h'], dtype=object)]
+        >>> [np.sort(c) for c in g.mcl(inflation=1.2)]
+        [array(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'], dtype=object)]
+        """
+       
+        clusters = mcl(self.data, **kwargs)
+        return [self.names.index[c].values for c in clusters]
 
     def edges(self, symmetric=True):
         if symmetric:
-            return (np.count_nonzero(self.data.diagonal()) + self.nnz) / 2
-        return self.nnz
+            return (np.count_nonzero(self.data.diagonal()) + self.data.nnz) / 2
+        return self.data.nnz
 
     def abs(self):
         return abs(self.data)
@@ -129,8 +151,9 @@ class SparseGraph(object):
 
         >>> g = SparseGraph.from_indices([7, 7, 5, 3, 3, 11, 11, 11, 8], [11, 8, 11, 8, 10, 2, 9, 10, 9], symmetric=False)
         >>> g.topological_sort()
+        array([ 7,  5, 11,  3, 10,  8,  9,  2])
         """
-        return self.names.index[topological_sort(self.data)]
+        return self.names.index[topological_sort(self.data)].values
 
     def pdist(self, metric='correlation', *args, **kwargs):
 #        pd.DataFrame(1.0-pairwise_distances(holstege, metric='correlation', n_jobs=-1), 
