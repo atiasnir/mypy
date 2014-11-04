@@ -129,8 +129,9 @@ class SparseGraph(object):
 
         >>> g = SparseGraph.from_indices([7, 7, 5, 3, 3, 11, 11, 11, 8], [11, 8, 11, 8, 10, 2, 9, 10, 9], symmetric=False)
         >>> g.topological_sort()
+        array([ 7,  5, 11,  3, 10,  8,  9,  2])
         """
-        return self.names.index[topological_sort(self.data)]
+        return self.names.index.values[topological_sort(self.data)]
 
     def pdist(self, metric='correlation', *args, **kwargs):
 #        pd.DataFrame(1.0-pairwise_distances(holstege, metric='correlation', n_jobs=-1), 
