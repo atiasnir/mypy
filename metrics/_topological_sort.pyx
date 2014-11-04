@@ -14,11 +14,13 @@ def topological_sort(csgraph):
     return node_list
 
 @cython.boundscheck(False)
-cdef void _topological_sort(int[:] indices,
-                           int[:] indptr,
-                           long[:] node_list,
-                           long[:] marked,
-                           long[:] stacked) nogil:
+@cython.wraparound(False)
+@cython.nonecheck(False)
+cdef void _topological_sort(int[::1] indices,
+                            int[::1] indptr,
+                            long[::1] node_list,
+                            long[::1] marked,
+                            long[::1] stacked) nogil:
     cdef int N = indices.shape[0] - 1
     cdef int i_nl_end = N-1
     cdef int i
@@ -30,14 +32,16 @@ cdef void _topological_sort(int[:] indices,
         i_nl_end = _topological_sort_visit_rec(i, i_nl_end, indices, indptr, node_list, marked, stacked)
 
 @cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nonecheck(False)
 cdef unsigned int _topological_sort_visit_rec(
                            unsigned int head_node,
                            unsigned int i_nl_end,
-                           int[:] indices,
-                           int[:] indptr,
-                           long[:] node_list,
-                           long[:] marked,
-                           long[:] stacked) nogil:
+                           int[::1] indices,
+                           int[::1] indptr,
+                           long[::1] node_list,
+                           long[::1] marked,
+                           long[::1] stacked) nogil:
     cdef int i
 
     if stacked[head_node] == 1:
