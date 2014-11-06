@@ -45,7 +45,8 @@ cdef int _depth_first_iterative(int i_start,
                                 int[::1] indptr, 
                                 int[::1] indices, 
                                 int[::1] order, 
-                                int[::1] predecessors) nogil:
+                                int[::1] predecessors, 
+                                int scipy_compat) nogil:
     cdef int i, j
     cdef int idx
     cdef int n = order.shape[0]
@@ -65,7 +66,7 @@ cdef int _depth_first_iterative(int i_start,
         order[order_end] = i_start
         order_end += 1
 
-        predecessors[i_start] = -9999
+        predecessors[i_start] = -9999 * scipy_compat + i_start * (1-scipy_compat)
         status[i_start] = 1
         
         while head >= stack:
@@ -96,13 +97,13 @@ cdef int _depth_first_iterative(int i_start,
         free(status)
 
 
-def depth_first_order(csgraph, i_start, directed=True, return_predecessors=True):
+def depth_first_order(csgraph, i_start, directed=True, return_predecessors=True, scipy_compat=True):
     cdef int n = csgraph.shape[0]
 
     order = np.empty(n, dtype=np.int32)
     predecessors = np.empty(n, dtype=np.int32)
 
-    _depth_first_iterative(i_start, csgraph.indptr, csgraph.indices, order, predecessors)
+    _depth_first_iterative(i_start, csgraph.indptr, csgraph.indices, order, predecessors, 1 if scipy_compat else 0)
 
     if return_predecessors:
         return order, predecessors
