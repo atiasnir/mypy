@@ -1,20 +1,6 @@
+import numpy as np
 import scipy.sparse as sparse
 import gurobipy as gurobi
-
-#i, j =[list(x) for x in  zip(('a','b'),
-#                             ('a','d'),
-#                             ('b','c'),
-#                             ('b','d'),
-#                             ('b','e'),
-#                             ('c','d'),
-#                             ('c','e'),
-#                             ('d','e'),
-#                             ('d','f'),
-#                             ('d','g'),
-#                             ('e','g'),
-#                             ('f','g'))]
-#
-#g = net.SparseGraph.from_indices(i, j)
 
 def _build_model(g, return_x=False):
     s = (2*g).data.todense()-1 # g==0 => s == -1; g ==1 => s == 1
@@ -23,12 +9,12 @@ def _build_model(g, return_x=False):
     n = g.data.shape[0]
 
     # define variables
-    x = {(i, j): m.addVar(vtype=GRB.BINARY, name="x_%s_%s" % (i, j)) for i in range(n) for j in range(i+1, n)}
+    x = {(i, j): m.addVar(vtype=gurobi.GRB.BINARY, name="x_%s_%s" % (i, j)) for i in range(n) for j in range(i+1, n)}
     m.update()
 
     # add objective
     edges = g.nnz / 2 # assume symmetric matrix with no self-edges
-    m.setObjective(edges - quicksum(x[i, j]*s[i, j] for i in range(n) for j in range(i+1, n)), GRB.MINIMIZE)
+    m.setObjective(edges - gurobi.quicksum(x[i, j]*s[i, j] for i in range(n) for j in range(i+1, n)), gurobi.GRB.MINIMIZE)
 
     # add constraints
     for i in range(n):
