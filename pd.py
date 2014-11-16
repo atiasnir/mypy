@@ -3,6 +3,7 @@ A module with simple utilities for pandas.
 
 """
 import pandas as pd
+import base64
 
 pd.options.display.width = 200
 
@@ -97,6 +98,12 @@ def split_and_stack(frame, colname, sep=None):
     mapping.name = colname # required for the merge
 
     return frame[[x for x in frame.columns if x!=colname]].join(mapping)
+
+def data_uri(df, name='Download Data', format=None):
+    encoded = '<a href="data:text/csv;base64,%s" target="_blank">%s</a>' % (base64.encodestring(df.to_csv()), name)
+    if format:
+        return format(encoded)
+    return encoded
 
 if __name__ == '__main__':
     import doctest
