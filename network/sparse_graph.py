@@ -8,7 +8,6 @@ from ..metrics import jaccard_distance
 from .random import shuffle
 
 from .mcl import mcl
-from .propagate import normalize, propagate
 from .topological_sort import topological_sort
 from .depth_first import depth_first_order
 
@@ -40,11 +39,15 @@ class SparseGraph(object):
 
         self.data = spmat
 
-    def normalize(self):
+    def normalize(self, inplace=False):
         """ Normalization for propagation """
-        data = 1.0 / np.sqrt(self.data.sum(1))
-        d = dia_matrix((data.T,[0]), (len(data),len(data)))
-        return SparseGraph(d * self.data * d, self.names)
+        if inplace:
+            data = 1.0 / np.sqrt(self.data.sum(1))
+            d = dia_matrix((data.T,[0]), (len(data),len(data)))
+            self.data = d * self.data * d
+            return self
+    
+        return self.copy().normalize(inplace=True)
 
     def propagate(self, y, alpha=0.6, eps=1e-5, max_iter=1000):
         # TODO: Create nicer interface for y of type pd.Series 
