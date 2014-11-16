@@ -138,7 +138,7 @@ class SparseGraph(object):
     def degree_distribution(self):
         b = np.bincount(self.degrees())
         indices = np.where(b)[0]
-        return pd.Series(data=b[indices], index=indices)
+        return pd.Series(data=b[indices], index=indices, name='count')
 
     def merge(self, other):
         """ Combine two networks (based on their node labels). Weight for
