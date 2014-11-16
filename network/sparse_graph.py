@@ -4,8 +4,12 @@ import pandas as pd
 import numpy.linalg as la
 from scipy.sparse import csr_matrix, issparse, dia_matrix
 
-from ..metrics import jaccard_distance, topological_sort
+from ..metrics import jaccard_distance
 from .random import shuffle
+
+from .mcl import mcl
+from .topological_sort import topological_sort
+from .depth_first import depth_first_order
 
 class SparseGraph(object):
     """ 
@@ -35,11 +39,15 @@ class SparseGraph(object):
 
         self.data = spmat
 
-    def normalize(self):
+    def normalize(self, inplace=False):
         """ Normalization for propagation """
-        data = 1.0 / np.sqrt(self.data.sum(1))
-        d = dia_matrix((data.T,[0]), (len(data),len(data)))
-        return SparseGraph(d * self.data * d, self.names)
+        if inplace:
+            data = 1.0 / np.sqrt(self.data.sum(1))
+            d = dia_matrix((data.T,[0]), (len(data),len(data)))
+            self.data = d * self.data * d
+            return self
+    
+        return self.copy().normalize(inplace=True)
 
     def propagate(self, y, alpha=0.6, eps=1e-5, max_iter=1000):
         # TODO: Create nicer interface for y of type pd.Series 
@@ -53,11 +61,73 @@ class SparseGraph(object):
                 break
         return f 
     smooth = propagate # alias
+    
+    def mcl(self, **kwargs):
+        """ A straightforward implementation for Markov Cluster.
+
+        Parameters: 
+        -----------
+        see mcl module
+
+        Examples:
+        ---------
+        >>> g = SparseGraph.from_indices(['a', 'a', 'b', 'b', 'b', 'c', 'c', 'd', 'd', 'f', 'f', 'g'], ['b', 'd', 'd', 'c', 'e', 'd', 'e', 'e', 'f', 'g', 'h', 'h'])
+        >>> [np.sort(c) for c in g.mcl()]
+        [array(['a', 'b', 'c', 'd', 'e'], dtype=object), array(['f', 'g', 'h'], dtype=object)]
+        >>> [np.sort(c) for c in g.mcl(inflation=1.2)]
+        [array(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'], dtype=object)]
+        """
+       
+        clusters = mcl(self.data, **kwargs)
+        return [self.names.index[c].values for c in clusters]
+
+    def topological_sort(self):
+        """ Returns an ordered list of the nodes of a DAG so that 
+            all edges are from nodes with lower indices to nodes with
+            higher indices
+
+        Example:
+        --------
+
+        >>> g = SparseGraph.from_indices([7, 7, 5, 3, 3, 11, 11, 11, 8], [11, 8, 11, 8, 10, 2, 9, 10, 9], symmetric=False)
+        >>> g.topological_sort()
+        array([ 7,  5, 11,  3, 10,  8,  9,  2])
+        """
+        return self.names.index.values[topological_sort(self.data)]
+
+    def depth_first_order(self, i, return_predecessors=True):
+        """ Performs a depth-first walk on the graph and return 
+            the nodes in the order they were found.
+
+        Example:
+        --------
+        >>> i, j = zip(('a', 'b'), ('a', 'c'), ('b', 'c'), ('c', 'd'), ('c', 'f'), ('d', 'e'), ('d', 'g'), ('e', 'g'), ('f', 'h'))
+        >>> g = SparseGraph.from_indices(i, j)
+        >>> o, p = g.depth_first_order('a')
+        >>> o
+        array(['a', 'b', 'c', 'd', 'e', 'g', 'f', 'h'], dtype=object)
+        >>> p
+        array(['a', 'a', 'b', 'c', 'd', 'c', 'e', 'f'], dtype=object)
+        >>> o2, p2 = g.depth_first_order(0)
+        >>> all(o2 == o)
+        True
+        >>> all(p2 == p)
+        True
+        """
+        if i in self.names.index:
+            i = self.names[i]
+
+        result = depth_first_order(self.data, i, return_predecessors=return_predecessors, scipy_compat=False)
+
+        if return_predecessors:
+            return self.names.index[result[0]].values, self.names.index[result[1]].values
+
+        return self.names.index[result[0]].values
 
     def edges(self, symmetric=True):
         if symmetric:
-            return (np.count_nonzero(self.data.diagonal()) + self.nnz) / 2
-        return self.nnz
+            return (np.count_nonzero(self.data.diagonal()) + self.data.nnz) / 2
+        return self.data.nnz
 
     def abs(self):
         return abs(self.data)
@@ -68,7 +138,7 @@ class SparseGraph(object):
     def degree_distribution(self):
         b = np.bincount(self.degrees())
         indices = np.where(b)[0]
-        return pd.Series(data=b[indices], index=indices)
+        return pd.Series(data=b[indices], index=indices, name='count')
 
     def merge(self, other):
         """ Combine two networks (based on their node labels). Weight for
@@ -118,19 +188,6 @@ class SparseGraph(object):
     def shuffle(self, directed=False, max_iterations=None, seed=0):
         return shuffle(self.data, directed=directed,
                        max_iterations=max_iterations, seed=seed)
-
-    def topological_sort(self):
-        """ Returns an ordered list of the nodes of a DAG so that 
-            all edges are from nodes with lower indices to nodes with
-            higher indices
-
-        Example:
-        --------
-
-        >>> g = SparseGraph.from_indices([7, 7, 5, 3, 3, 11, 11, 11, 8], [11, 8, 11, 8, 10, 2, 9, 10, 9], symmetric=False)
-        >>> g.topological_sort()
-        """
-        return self.names.index[topological_sort(self.data)]
 
     def pdist(self, metric='correlation', *args, **kwargs):
 #        pd.DataFrame(1.0-pairwise_distances(holstege, metric='correlation', n_jobs=-1), 
@@ -226,6 +283,12 @@ class SparseGraph(object):
                 [0, 1, 0, 1],
                 [0, 0, 1, 0]])
         """
+        if isinstance(i, tuple):
+            i = list(i)
+
+        if isinstance(j, tuple):
+            j = list(j)
+
         allnames = np.union1d(i, j)
         names = pd.Series(np.arange(allnames.shape[0],dtype=np.int), allnames)
 
@@ -357,5 +420,11 @@ SparseGraph._add_comparison_method()
 SparseGraph._add_sparse_ops()
 
 if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
+    i, j = zip(('a', 'b'), ('a', 'c'), ('b', 'c'), ('c', 'd'), ('c', 'f'), ('d', 'e'), ('d', 'g'), ('e', 'g'), ('f', 'h'))
+    g = SparseGraph.from_indices(i, j)
+    o, p = g.depth_first_order('a')
+    print p
+    print o
+
+    #import doctest
+    #doctest.testmod()

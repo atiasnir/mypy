@@ -6,5 +6,15 @@ GENE_INFO_COLUMNS = ('tax_id', 'gene_id', 'symbol', 'locustag', 'synonyms',
                      'nomenclature_status', 'other_designations',
                      'modification_date')
 
-def gene_info(filename):
-    return pd.read_table(filename, names=GENE_INFO_COLUMNS, comment='#', na_values=('-',))
+def gene_info(filename, **kwd):
+    defaults = {'names': GENE_INFO_COLUMNS, 'comment': '#', 'na_values': ('-',)}
+    defaults.update(**kwd)
+    return pd.read_table(filename, **defaults)
+
+
+HIPPIE_COLUMNS = ('uniprot_id_a', 'entrez_id_a', 'uniprot_id_b', 'entrez_id_b', 'confidence', 'info')
+
+def hippie(filename, **kwd):
+    defaults = {'names': HIPPIE_COLUMNS }
+    defaults.update(**kwd)
+    return pd.read_table(filename, **defaults)
