@@ -12,6 +12,7 @@ helpers for pandas
  * split_and_stack, which creates multiple rows from string delimited columns
  * merge, which is an in-place replacement for pandas merge (can also be assigned to pandas.DataFrame.merge) which is slightly better (in my opinion, see the docs :-))
  * data_uri() helps to generate links to data in ipython notebook (avoid using large data frames). The basics:
+
  	>>> from IPython.display import HTML
 	>>> df = pandas.DataFrame(...)
 	>>> data_uri(df, HTML)
