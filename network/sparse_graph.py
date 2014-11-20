@@ -429,6 +429,8 @@ class SparseGraph(object):
 SparseGraph._add_comparison_method()
 SparseGraph._add_sparse_ops()
 
+from_indices = SparseGraph.from_indices
+
 if __name__ == '__main__':
     i, j = zip(('a', 'b'), ('a', 'c'), ('b', 'c'), ('c', 'd'), ('c', 'f'), ('d', 'e'), ('d', 'g'), ('e', 'g'), ('f', 'h'))
     g = SparseGraph.from_indices(i, j)
