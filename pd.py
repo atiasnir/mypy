@@ -52,7 +52,7 @@ def merge(df1, df2, how='inner', on=None, left_on=None, right_on=None,
         if not hasattr(right_on, '__iter__'):
             right_on = (right_on,)
         right_cols = result.columns[df1.columns.shape[0]:]
-        right_on_cols = [x for x in right_cols for j in right_on if x.startswith(j)]
+        right_on_cols = [x for x in right_cols for j in right_on if (x==j) or (x==j+suffixes[1])]
         result.drop(right_on_cols, inplace=True, axis=1)
 
     if len(kwargs) > 0:
@@ -99,8 +99,10 @@ def split_and_stack(frame, colname, sep=None):
 
     return frame[[x for x in frame.columns if x!=colname]].join(mapping)
 
-def data_uri(df, name='Download Data', format=None):
-    encoded = '<a href="data:text/csv;base64,%s" target="_blank">%s</a>' % (base64.encodestring(df.to_csv()), name)
+def data_uri(df, name='Download Data', format=None, **kwargs):
+    defaults = {'index': False}
+    defaults.update(kwargs)
+    encoded = '<a href="data:text/csv;base64,%s" target="_blank">%s</a>' % (base64.encodestring(df.to_csv(**kwargs)), name)
     if format:
         return format(encoded)
     return encoded
