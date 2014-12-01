@@ -1,6 +1,12 @@
-CFLAGS+= -I/home/bnet/atiasnir/mypy/include/python2.7/
+ifdef VIRTUAL_ENV
+	CFLAGS+= -I$(VIRTUAL_ENV)/include/python2.7/
+else
+	CFLAGS+= -I/use/include/python2.7/
+endif
+
+# NOTE: 
+# -fno-strict-aliasing is required for cython
 CFLAGS+= -std=c++0x -Wall -fPIC -shared -O3 -fno-strict-aliasing
-#CXX=g++-4.8
 
 %.cpp: %.pyx
 	cython --cplus $<
