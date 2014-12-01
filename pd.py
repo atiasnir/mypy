@@ -46,6 +46,9 @@ def merge(df1, df2, how='inner', on=None, left_on=None, right_on=None,
                       right_index=right_index, sort=sort, suffixes=suffixes,
                       copy=copy)
 
+    if how != 'inner':
+        return result;
+
     # remove columns appearing twice (due to different 'on' columns for left
     # and right)
     if left_on != right_on:
@@ -98,6 +101,38 @@ def split_and_stack(frame, colname, sep=None):
     mapping.name = colname # required for the merge
 
     return frame[[x for x in frame.columns if x!=colname]].join(mapping)
+
+def split_to_columns(frame, colname, sep=None, colnames=None):
+    """ Converts a row of delimited values in a dataframe to multiple rows.
+        The resulting table is useful for joins.
+
+        Parameters
+        ----------
+        frame:   the data frame to process
+        colname: the name of the column containing the delimited data
+        sep:     an optional pattern for split(). if not specified split on whitespace
+
+        >>> import pandas as pd 
+        >>> df = pd.DataFrame.from_items([('col1', ['1 2 3']), ('col2', ['a'])])
+        >>> splitted = split_to_columns(df, 'col1', ['COL1', 'COL2', 'COL3'])
+        >>> splitted.shape
+        (1, 4)
+
+        >>> splitted
+          col2 COL1 COL2 COL3
+        0    a    1    2    3
+        
+    """
+    mask = frame[colname].isnull()
+
+    masked_frame=frame[~mask]
+    mapping = pd.DataFrame([{i: v for i,v in enumerate(x)} for x in
+                             masked_frame[colname].str.split(sep).tolist()],
+                             index=masked_frame.index)#.reset_index(1,drop=True)
+    if colnames is not None:
+        mapping.columns = colnames
+    
+    return frame.join(mapping)
 
 def data_uri(df, name='Download Data', format=None, **kwargs):
     defaults = {'index': False}
