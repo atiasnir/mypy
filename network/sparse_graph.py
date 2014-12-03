@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 import numpy.linalg as la
+import scipy.spatial.distance as distance
 from scipy.sparse import csr_matrix, issparse, dia_matrix
 
 from ..metrics import jaccard_distance
@@ -269,6 +270,13 @@ class SparseGraph(object):
                 [1, 0, 1, 0],
                 [0, 1, 0, 1],
                 [0, 0, 1, 0]])
+        >>> g = SparseGraph.from_indices(row, col, 3)
+        >>> g.data.todense()
+        matrix([[0, 3, 0, 0],
+                [3, 0, 3, 0],
+                [0, 3, 0, 3],
+                [0, 0, 3, 0]])
+
         >>> g = SparseGraph.from_indices(row, col, 1+np.arange(len(row)))
         >>> g.data.todense()
         matrix([[0, 1, 0, 0],
@@ -294,6 +302,8 @@ class SparseGraph(object):
 
         if data is None:
             data = np.ones(len(i), dtype=np.int)
+        elif np.isscalar(data):
+            data *= np.ones(len(i), dtype=np.int)
 
         smatrix = csr_matrix((data, (names.loc[i], names.loc[j])), shape=(allnames.shape[0], allnames.shape[0]))
         data = smatrix if not symmetric else smatrix + smatrix.T
@@ -418,6 +428,8 @@ class SparseGraph(object):
 
 SparseGraph._add_comparison_method()
 SparseGraph._add_sparse_ops()
+
+from_indices = SparseGraph.from_indices
 
 if __name__ == '__main__':
     i, j = zip(('a', 'b'), ('a', 'c'), ('b', 'c'), ('c', 'd'), ('c', 'f'), ('d', 'e'), ('d', 'g'), ('e', 'g'), ('f', 'h'))

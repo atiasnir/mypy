@@ -46,13 +46,16 @@ def merge(df1, df2, how='inner', on=None, left_on=None, right_on=None,
                       right_index=right_index, sort=sort, suffixes=suffixes,
                       copy=copy)
 
+    if how != 'inner':
+        return result;
+
     # remove columns appearing twice (due to different 'on' columns for left
     # and right)
     if left_on != right_on:
         if not hasattr(right_on, '__iter__'):
             right_on = (right_on,)
         right_cols = result.columns[df1.columns.shape[0]:]
-        right_on_cols = [x for x in right_cols for j in right_on if x.startswith(j)]
+        right_on_cols = [x for x in right_cols for j in right_on if (x==j) or (x==j+suffixes[1])]
         result.drop(right_on_cols, inplace=True, axis=1)
 
     if len(kwargs) > 0:
@@ -99,8 +102,42 @@ def split_and_stack(frame, colname, sep=None):
 
     return frame[[x for x in frame.columns if x!=colname]].join(mapping)
 
-def data_uri(df, name='Download Data', format=None):
-    encoded = '<a href="data:text/csv;base64,%s" target="_blank">%s</a>' % (base64.encodestring(df.to_csv()), name)
+def split_to_columns(frame, colname, sep=None, colnames=None):
+    """ Converts a row of delimited values in a dataframe to multiple rows.
+        The resulting table is useful for joins.
+
+        Parameters
+        ----------
+        frame:   the data frame to process
+        colname: the name of the column containing the delimited data
+        sep:     an optional pattern for split(). if not specified split on whitespace
+
+        >>> import pandas as pd 
+        >>> df = pd.DataFrame.from_items([('col1', ['1 2 3']), ('col2', ['a'])])
+        >>> splitted = split_to_columns(df, 'col1', ['COL1', 'COL2', 'COL3'])
+        >>> splitted.shape
+        (1, 4)
+
+        >>> splitted
+          col2 COL1 COL2 COL3
+        0    a    1    2    3
+        
+    """
+    mask = frame[colname].isnull()
+
+    masked_frame=frame[~mask]
+    mapping = pd.DataFrame([{i: v for i,v in enumerate(x)} for x in
+                             masked_frame[colname].str.split(sep).tolist()],
+                             index=masked_frame.index)#.reset_index(1,drop=True)
+    if colnames is not None:
+        mapping.columns = colnames
+    
+    return frame.join(mapping)
+
+def data_uri(df, name='Download Data', format=None, **kwargs):
+    defaults = {'index': False}
+    defaults.update(kwargs)
+    encoded = '<a href="data:text/csv;base64,%s" target="_blank">%s</a>' % (base64.encodestring(df.to_csv(**kwargs)), name)
     if format:
         return format(encoded)
     return encoded

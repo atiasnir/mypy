@@ -18,3 +18,16 @@ def hippie(filename, **kwd):
     defaults = {'names': HIPPIE_COLUMNS }
     defaults.update(**kwd)
     return pd.read_table(filename, **defaults)
+
+
+UNIPROT_IDMAPPING = ('protein', 'db', 'dbid')
+
+def uniprot_mapping(filename, db=('UniProtKB-ID', 'GeneID'), raw=False, **kwd):
+    defaults = {'names': UNIPROT_IDMAPPING }
+    defaults.update(kwd)
+
+    raw_data = pd.read_table(filename, **defaults)
+    if raw:
+        return raw_data
+    
+    return pd.pivot_table(raw_data, 'dbid', index='protein', columns='db', aggfunc=lambda x: "|".join(x)).dropna()
