@@ -1,18 +1,20 @@
 #!/usr/bin/env python
-import argparse
-import sys
-import concurrent.futures
-from mypy.os import mkdir
+import joblib
+import mypy.os_utils
+import os.path
 
 from bs4 import BeautifulSoup
 import requests
 
 import pandas as pd
 
+import paths
 
-def pathway_list():
+KEGG_BASE_URL = 'http://rest.kegg.jp' 
+
+def pathway_list(species='hsa'):
     """ download list of all KEGG pathways """
-    response = requests.get("http://rest.kegg.jp/list/pathway/hsa/")
+    response = requests.get("{domain}/list/pathway/{species}".format(domain=KEGG_BASE_URL, species=species))
     page = BeautifulSoup(response.text)
     return pd.DataFrame([line.split('\t') for line in page.body.text.split('\n')[:-1]],
             columns=['pathway', 'description'])
@@ -60,9 +62,9 @@ def get_relations(path, page):
         relations.append(relation.attrs)
     return pd.DataFrame(relations)
 
-def pathway(path):
+def download_pathway(path):
     """ retrieve all entries of the specified pathway """
-    response = requests.get("http://rest.kegg.jp/get/{path}/kgml".format(path=path))
+    response = requests.get("{domain}/get/{path}/kgml".format(domain=KEGG_BASE_URL, path=path))
     page = BeautifulSoup(response.text)
 
     entries = get_entries(path, page)
@@ -70,14 +72,12 @@ def pathway(path):
     relations = get_relations(path, page)
     return entries, reactions, relations
 
-def load_async(path_list):
+def download_all_pathways(path_list, **kwd):
     """ retrieve pathways in parallel """
-    with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
-        future_to_url = {executor.submit(pathway, path): path for path in
-                path_list}
-        for future in concurrent.futures.as_completed(future_to_url):
-            yield future.result()
-
+    defaults = {'n_jobs': 100, 'backend': 'threading'}
+    defaults.update(kwd)
+    return joblib.Parallel(**defaults)(joblib.delayed(download_pathway)(path) for path in path_list)
+    
 def concat_rows(dfs):
     """ concatenate a list of data frames by row """
     return pd.concat(dfs, axis=0)
@@ -86,19 +86,20 @@ def weave(x):
     """ transform list of tuples into tuple of lists (transpose)"""
     return zip(*list(x))
 
-def construct():
+def construct(species='hsa'):
     """ load data and aggregate into 'pathway, 'entries', 'reactions'
     and 'relations' tables """
-    pathways = pathway_list()
-    annotations = load_async(pathways.pathway)
+    pathways = pathway_list(species)
+    annotations = download_all_pathways(pathways.pathway)
     entries, reactions, relations = map(concat_rows, weave(annotations))
-    return {'pathways':pathways, 'entries':entries, 'reactions':reactions,
-            'relations':relations}
+    return {paths.PATHWAY_FILENAME: pathways, 
+            paths.ENTRY_FILENAME: entries,
+            paths.REACTION_FILENAME: reactions,
+            paths.RELATION_FILENAME: relations}
 
-def download_kegg(path):
+def download_kegg(path, species='hsa'):
     """ download kegg and save it to 'path/.kegg/' """
-    kegg = construct()
-    mkdir(path)
+    kegg = construct(species)
+    mypy.os_utils.mkdir(os.path.join(path, species))
     for name, df in kegg.items():
-        df.to_csv(path + name + '.csv', index=False)
-    return kegg
+        df.to_csv(paths.construct_path(path, species, name), index=False, sep='\t')

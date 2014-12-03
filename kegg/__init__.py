@@ -11,49 +11,50 @@ import os.path
 import pandas as pd
 from mypy.pd import split_and_stack
 
-from .settings import PATH
+import paths
 
-if not os.path.isfile(PATH + 'pathways.csv'):
-    from .download import download_kegg
-    msg = """ initializing module:
-    downloading kegg to {p}
-    change the path by modifying "settings.py"
-    """
-    print(msg.format(p = PATH))
-    kegg = download_kegg(PATH)
+class Kegg(object):
+    pass
 
-else:
-    from glob import glob
-    kegg = {}
-    for file_path in glob(PATH + '*.csv'):
-        kegg[file_path.split('/')[-1][:-4]] = pd.read_csv(file_path)
+def load(species='hsa', cache_folder=None, force_download=False):
+    home = os.path.expanduser('~')
+    if cache_folder is None:
+        if os.path.exists(home + '/bnet'):
+            cache_folder = home + '/bnet/.kegg'
+        else:
+            cache_folder = home + '/.kegg'
 
-"""
-Basic building blocks
-"""
-pathways = kegg['pathways']
-pathways.loc[:,'description'] = pathways.loc[:,'description'].str.replace(' - Homo sapiens \(human\)','')
+    if force_download or not os.path.isfile(paths.construct_path(cache_folder, species, paths.PATHWAY_FILENAME)):
+        from .download import download_kegg
+        download_kegg(cache_folder, species) # removed return value due to suspected pandas bug
 
-entries = kegg['entries']
-entries_name = split_and_stack(entries, 'name')
+    pathways = pd.read_table(paths.construct_path(cache_folder, species, paths.PATHWAY_FILENAME))
+    entries = pd.read_table(paths.construct_path(cache_folder, species, paths.ENTRY_FILENAME))
+    reactions = pd.read_table(paths.construct_path(cache_folder, species, paths.REACTION_FILENAME))
+    relations = pd.read_table(paths.construct_path(cache_folder, species, paths.RELATION_FILENAME))
 
-reactions = kegg['reactions']
-relations = kegg['relations']
+    # Basic building blocks
+    if species == 'hsa':
+        pathways.loc[:,'description'] = pathways.loc[:,'description'].str.replace(' - Homo sapiens \(human\)','')
 
-"""
-Nodes
-"""
-nodes = split_and_stack(entries[entries.type == 'gene'], 'name')
-nodes['GeneID'] = nodes.name.str.replace('hsa:','')
-nodes = nodes.merge(pathways)
+    # Nodes
+    nodes = split_and_stack(entries[entries['type'] == 'gene'], 'name')
+    nodes['GeneID'] = nodes.name.str.replace(species + ':', '')
+    nodes = nodes.merge(pathways)
 
-"""
-Edges
-"""
-entry1 = pd.merge(relations, nodes[['pathway', 'id',
-    'GeneID']].rename(columns={'id': 'entry1', 'GeneID':0}))
-entry2 = pd.merge(relations, nodes[['pathway', 'id',
-    'GeneID']].rename(columns={'id': 'entry2', 'GeneID':1}))
-edges = pd.merge(entry1, entry2).merge(pathways)
-del entry1
-del entry2
+    # Edges
+    entry1 = pd.merge(relations, nodes[['pathway', 'id',
+        'GeneID']].rename(columns={'id': 'entry1', 'GeneID':0}))
+    entry2 = pd.merge(relations, nodes[['pathway', 'id',
+        'GeneID']].rename(columns={'id': 'entry2', 'GeneID':1}))
+    edges = pd.merge(entry1, entry2).merge(pathways)
+
+    retval = Kegg()
+    retval.pathways = pathways
+    retval.entries = entries
+    retval.reactions = reactions
+    retval.relations = relations
+    retval.nodes = nodes
+    retval.edges = edges
+
+    return retval
