@@ -40,6 +40,27 @@ Statistical utilities. Currently contains only partial correlation
 ### mypy.metrics
 Currently contains Jaccard pairwise distance for sparse matrices (much faster than the dense version that is shipped with `scipy`)
 
+### mypy.kegg
+Exposes the KEGG database as a set of `pandas.DataFrame`s
+
+Allows for fast and convenient annotation of other `pandas.DataFrame`s
+using the `merge` and `groupby` operations.
+
+The database is initially downloaded into the path defined in `kegg/settings.py`.
+For subsequent import the already downloaded tables are read from cache.
+
+Available dataframes:
+
+    # raw
+    pathways
+    entries
+    reactions
+    relations
+
+    # processed
+    nodes
+    edges
+    
 Setup
 -----
 Note that I currently don't package it. I just clone the repository directly into:
