@@ -17,6 +17,13 @@ helpers for pandas
 	>>> df = pandas.DataFrame(...)
 	>>> data_uri(df, HTML)
 
+### mypy.pdplot
+Adds some convenience plotting functions
+
+    corr_plot(df, method='spearman', **kwargs)
+    heat_plot(df, cluster=False, colorbar=True, **kwargs)
+    na_plot(df, cluster=False)
+
 ### mypy.network
 A very useful SparseGraph class that behaves as a mixture of a sparse-matrix and a DataFrame.
 Additionally, there are a few algorithms in this package, some are better implemented than their `scipy` counterparts.
