@@ -46,7 +46,7 @@ Exposes the KEGG database as a set of `pandas.DataFrame`s
 Allows for fast and convenient annotation of other `pandas.DataFrame`s
 using the `merge` and `groupby` operations.
 
-The database is initially downloaded into the path defined in `kegg/settings.py`.
+**The database is initially downloaded into the path defined in `kegg/settings.py`**.
 For subsequent import the already downloaded tables are read from cache.
 
 Available dataframes:
