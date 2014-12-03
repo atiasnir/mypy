@@ -40,6 +40,20 @@ class SparseGraph(object):
 
         self.data = spmat
 
+    def __getitem__(self, key):
+        if issparse(key) or isinstance(key, np.ndarray):
+            return self.data[key]
+
+        if isinstance(key, tuple):
+            try:
+                newkey = tuple(self.names[x] for x in key)
+                return self.data[newkey]
+            except:
+                pass
+
+        return self.data[key]
+
+
     def normalize(self, inplace=False):
         """ Normalization for propagation """
         if inplace:
@@ -342,11 +356,16 @@ class SparseGraph(object):
         cls.__le__ = create_comp_method(csr_matrix.__le__)
 
         cls.__add__ = create_comp_method(csr_matrix.__add__, True)
+        cls.__iadd__ = create_comp_method(csr_matrix.__iadd__, True)
+        cls.__idiv__ = create_comp_method(csr_matrix.__idiv__, True)
+        cls.__itruediv__ = create_comp_method(csr_matrix.__itruediv__, True)
         cls.__radd__ = create_comp_method(csr_matrix.__radd__, True)
         cls.__sub__ = create_comp_method(csr_matrix.__sub__, True)
         cls.__rsub__ = create_comp_method(csr_matrix.__rsub__, True)
+        cls.__isub__ = create_comp_method(csr_matrix.__isub__, True)
         cls.__mul__ = create_comp_method(csr_matrix.__mul__, True)
         cls.__rmul__ = create_comp_method(csr_matrix.__rmul__, True)
+        cls.__imul__ = create_comp_method(csr_matrix.__imul__, True)
         cls.multiply = create_comp_method(csr_matrix.multiply, True)
         cls.maximum = create_comp_method(csr_matrix.maximum, True)
         cls.minimum = create_comp_method(csr_matrix.minimum, True)
