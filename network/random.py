@@ -36,10 +36,10 @@ def geometric(n, threshold=0.5, dim=5):
     distances = pdist(data)
     return csr_matrix(squareform(np.where(distances < threshold, 1, 0)))
 
-def preferential(n):
+def preferential(n, k=1):
     """ Generate a random graph based on preferential attachment model. 
     Starting from an edge (n-2) nodes are added sequentially such that 
-    each added node is attached to exactly one existing. The probability
+    each added node is attached to k existing nodes. The probability
     of which node to choose is proportional their degree.
 
     Parameters:
@@ -66,7 +66,8 @@ def preferential(n):
 
     for i in range(2, n):
         p = data.sum(axis=0) / data.sum()
-        to = np.random.choice(i, p=p[p>0])
+        to = np.unique(np.random.choice(i, size=k, p=p[p>0]))
+
         data[i, to] = 1
         data[to, i] = 1
 
