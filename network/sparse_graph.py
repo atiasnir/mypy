@@ -44,7 +44,7 @@ class SparseGraph(object):
         if issparse(key) or isinstance(key, np.ndarray):
             return self.data[key]
 
-        if isinstance(key, tuple):
+        if isinstance(key, tuple) or key in self.names.index:
             try:
                 newkey = tuple(self.names[x] for x in key)
                 return self.data[newkey]
@@ -312,7 +312,7 @@ class SparseGraph(object):
             j = list(j)
 
         allnames = np.union1d(i, j)
-        names = pd.Series(np.arange(allnames.shape[0],dtype=np.int), allnames)
+        names = pd.Series(np.arange(allnames.shape[0], dtype=np.int), allnames)
 
         if data is None:
             data = np.ones(len(i), dtype=np.int)
