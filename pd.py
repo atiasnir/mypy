@@ -100,7 +100,7 @@ def split_and_stack(frame, colname, sep=None):
                              index=masked_frame.index).stack().reset_index(1,drop=True)
     mapping.name = colname # required for the merge
 
-    return frame[[x for x in frame.columns if x!=colname]].join(mapping)
+    return frame.drop(colname, axis=1).join(mapping)
 
 def split_to_columns(frame, colname, sep=None, colnames=None):
     """ Converts a row of delimited values in a dataframe to multiple rows.
