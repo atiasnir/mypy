@@ -1,3 +1,7 @@
+"""
+download latest (human) release using
+wget ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/by_organism/HUMAN_9606_idmapping.dat.gz
+"""
 import pandas as pd
 
 GENE_INFO_COLUMNS = ('tax_id', 'gene_id', 'symbol', 'locustag', 'synonyms',
@@ -30,11 +34,11 @@ def uniprot_mapping(filename, db=('UniProtKB-ID', 'GeneID'), raw=False, **kwd):
     if raw:
         return raw_data
     
-    return pd.pivot_table(raw_data, 'dbid', index='protein', columns='db', aggfunc=lambda x: "|".join(x)).dropna()
+    return pd.pivot_table(raw_data, 'dbid', index='protein', columns='db',
+            aggfunc=lambda x: "|".join(x)).dropna(subset=db)
 
 ANAT_COLUMNS = ('interactor_a', 'interactor_b', 'confidence', 'directed')
 def anat_network(filename, **kwds):
     defaults = {'names': ANAT_COLUMNS}
     defaults.update(kwds)
     return pd.read_table(filename, **defaults)
-
