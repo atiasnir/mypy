@@ -31,3 +31,10 @@ def uniprot_mapping(filename, db=('UniProtKB-ID', 'GeneID'), raw=False, **kwd):
         return raw_data
     
     return pd.pivot_table(raw_data, 'dbid', index='protein', columns='db', aggfunc=lambda x: "|".join(x)).dropna()
+
+ANAT_COLUMNS = ('interactor_a', 'interactor_b', 'confidence', 'directed')
+def anat_network(filename, **kwds):
+    defaults = {'names': ANAT_COLUMNS}
+    defaults.update(kwds)
+    return pd.read_table(filename, **defaults)
+
