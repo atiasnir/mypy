@@ -10,18 +10,29 @@ A collection of python tools. These mainly involve:
 helpers for pandas
 
  * split_and_stack, which creates multiple rows from string delimited columns
- * merge, which is an in-place replacement for pandas merge (can also be assigned to pandas.DataFrame.merge) which is slightly better (in my opinion, see the docs :-))
+ * merge, which is an in-place replacement for pandas merge (can also be assigned to `pandas.DataFrame.merge`) which is slightly better (in my opinion, see the docs :-))
  * data_uri() helps to generate links to data in ipython notebook (avoid using large data frames). The basics:
 
  	>>> from IPython.display import HTML
 	>>> df = pandas.DataFrame(...)
 	>>> data_uri(df, HTML)
 
+### mypy.fileformat
+Helper methods to read (and apply common processing) for some prevalent file formats.
+Generally methods allow the client to specify additional arguments that are passed directly to the underlying `pandas` parser.
+Currently the following are available:
+
+1. gene_info (NCBI). 
+2. uniprot mapping. Will attempt to build a mapping table between the requested formats, based on a uniprot mapping file
+3. BioGRID. Will read tab2 files from biogrid. There's a general `biogrid` function but  `biogrid_physical` and `biogrid_genetic` may be more suitable for reading only physical (genetic) interactions.
+4. ANAT. Read networks from ANAT.
+5. HIPPIE. Read HIPPIE network.
+
 ### mypy.pdplot
 Adds some convenience plotting functions
 
-    corr_plot(df, method='spearman', **kwargs)
-    heat_plot(df, cluster=False, colorbar=True, **kwargs)
+    corr_plot(df, method='spearman', \**kwargs)
+    heat_plot(df, cluster=False, colorbar=True, \**kwargs)
     na_plot(df, cluster=False)
 
 ### mypy.network
