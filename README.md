@@ -29,6 +29,7 @@ Currently the following are available:
 3. BioGRID. Will read tab2 files from biogrid. There's a general `biogrid` function but  `biogrid_physical` and `biogrid_genetic` may be more suitable for reading only physical (genetic) interactions.
 4. ANAT. Read networks from ANAT.
 5. HIPPIE. Read HIPPIE network.
+6. GOA (GO association) file format.
 
 ### mypy.pdplot
 Adds some convenience plotting functions:
