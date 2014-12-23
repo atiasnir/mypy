@@ -13,7 +13,7 @@ helpers for pandas
  * merge, which is an in-place replacement for pandas merge (can also be assigned to `pandas.DataFrame.merge`) which is slightly better (in my opinion, see the docs :-))
  * data_uri() helps to generate links to data in ipython notebook (avoid using large data frames). The basics:
 
-```
+```python
     from IPython.display import HTML
     df = pandas.DataFrame(...)
     data_uri(df, HTML)
@@ -33,11 +33,11 @@ Currently the following are available:
 ### mypy.pdplot
 Adds some convenience plotting functions:
 
-```
-    corr_plot(df, method='spearman', \**kwargs)
-    heat_plot(df, cluster=False, colorbar=True, \**kwargs)
+```python
+    corr_plot(df, method='spearman', **kwargs)
+    heat_plot(df, cluster=False, colorbar=True, **kwargs)
     na_plot(df, cluster=False)
-    auc_plot(scores, truth_values, label_template=None, \**kwargs)
+    auc_plot(scores, truth_values, label_template=None, **kwargs)
 ```
 
 ### mypy.network
