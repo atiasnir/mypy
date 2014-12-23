@@ -13,9 +13,9 @@ helpers for pandas
  * merge, which is an in-place replacement for pandas merge (can also be assigned to `pandas.DataFrame.merge`) which is slightly better (in my opinion, see the docs :-))
  * data_uri() helps to generate links to data in ipython notebook (avoid using large data frames). The basics:
 
- 	>>> from IPython.display import HTML
-	>>> df = pandas.DataFrame(...)
-	>>> data_uri(df, HTML)
+ 	from IPython.display import HTML
+	df = pandas.DataFrame(...)
+	data_uri(df, HTML)
 
 ### mypy.fileformat
 Helper methods to read (and apply common processing) for some prevalent file formats.
@@ -34,6 +34,7 @@ Adds some convenience plotting functions
     corr_plot(df, method='spearman', \**kwargs)
     heat_plot(df, cluster=False, colorbar=True, \**kwargs)
     na_plot(df, cluster=False)
+    auc_plot(scores, truth_values, label_template=None, \**kwargs)
 
 ### mypy.network
 A very useful SparseGraph class that behaves as a mixture of a sparse-matrix and a DataFrame.
@@ -52,7 +53,7 @@ Statistical utilities. Currently contains only partial correlation
 Currently contains Jaccard pairwise distance for sparse matrices (much faster than the dense version that is shipped with `scipy`)
 
 ### mypy.kegg
-Exposes the KEGG database as a set of `pandas.DataFrame`s
+Exposes the KEGG database as a set of `pandas.DataFrame`\s
 
 Allows for fast and convenient annotation of other `pandas.DataFrame`s
 using the `merge` and `groupby` operations.

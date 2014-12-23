@@ -1,8 +1,9 @@
-import pylab as plt
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import sklearn.metrics
         
-from scipy.spatial.distance import pdist, squareform
+from scipy.spatial.distance import pdist
 from scipy.cluster.hierarchy import linkage, dendrogram
 
 def corr_plot(df, method='spearman', **kwargs):
@@ -44,3 +45,19 @@ def na_plot(df, cluster=False):
     plt.ylim((0,mat.shape[0]))
     plt.xticks(0.5 + np.arange(mat.shape[1]), df.columns, rotation='vertical')
     plt.xlim(0,mat.shape[1])
+
+def auc_plot(scores, gold_standard, label_template=None, **kwargs):
+    fpr, tpr, _ = sklearn.metrics.roc_curve(gold_standard, scores)
+    auc_score = sklearn.metrics.auc(fpr, tpr)
+
+    should_add_line = len(plt.gcf().axes) == 0
+
+    if label_template is not None:
+        kwargs['label'] = label_template.format(auc=auc_score)
+
+    plt.plot(fpr, tpr, **kwargs)
+    
+    if should_add_line:
+        plt.plot([0, 1], [0, 1], 'k--')
+
+    return auc_score
