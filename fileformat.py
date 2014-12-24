@@ -9,10 +9,13 @@ GENE_INFO_COLUMNS = ('tax_id', 'gene_id', 'symbol', 'locustag', 'synonyms',
                      'gene_type', 'gene_symbol', 'full_name',
                      'nomenclature_status', 'other_designations',
                      'modification_date')
-def gene_info(filename, **kwd):
+def gene_info(filename, remove_newentry=True, **kwd):
     defaults = {'names': GENE_INFO_COLUMNS, 'comment': '#', 'na_values': ('-',)}
     defaults.update(**kwd)
-    return pd.read_table(filename, **defaults)
+    result = pd.read_table(filename, **defaults)
+    if remove_newentry:
+        result.drop(result.index[result.symbol=='NEWENTRY'], inplace=True)
+    return result
 
 
 HIPPIE_COLUMNS = ('uniprot_id_a', 'entrez_id_a', 'uniprot_id_b', 'entrez_id_b', 'confidence', 'info')
