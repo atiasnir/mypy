@@ -102,3 +102,27 @@ def go_annotation(filename, experimental=True, **kwds):
         result.drop(result.index[~retain_mask], inplace=True)
 
     return result
+
+PHOSPHOSITE_COLUMNS = ('kinase', 'kinase_id', 'kinase_gene', 'location', 'kinase_organism',
+                       'substrate', 'substrate_entrez', 'substrate_id', 'substrate_gene', 'substrate_organism', 
+                       'substrate_residue', 'site_grp_id', 'site_amino_acids', 'in_vivo_rxn', 'in_vitro_rxn', 'cst_cat')
+
+def phosphosite(filename, organism=None, **kwds):
+    defaults = {'names': PHOSPHOSITE_COLUMNS, 'skiprows': 4}
+    defaults.update(**kwds)
+
+    tbl = pd.read_table(filename, **defaults)
+    if 'in_vivo_rxn' in tbl:
+        tbl.in_vivo_rxn = tbl.in_vivo_rxn.str.startswith('X')
+
+    if 'in_vitro_rxn' in tbl:
+        tbl.in_vitro_rxn = tbl.in_vitro_rxn.str.startswith('X')
+
+    if organism is not None:
+        if hasattr(organism, '__iter__'):
+            mask = tbl.kinase_organism.isin(organism) & tbl.substrate_organism.isin(organism)
+        else:
+            mask = (tbl.kinase_organism == organism) & (tbl.substrate_organism == organism)
+        tbl.drop(tbl.index[~mask], inplace=True)
+
+    return tbl
