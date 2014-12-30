@@ -39,6 +39,7 @@ class SparseGraph(object):
             self.names = pd.Series(np.arange(names.shape[0],dtype=np.int), names)
 
         self.data = spmat
+        self.shape = spmat.shape # ugly but can't think of a better way
 
     def __getitem__(self, key):
         if issparse(key) or isinstance(key, np.ndarray):
@@ -268,7 +269,7 @@ class SparseGraph(object):
         return pd.DataFrame(data=np.asarray(self.data.todense()), index=self.names.index, columns=self.names.index)
 
     @staticmethod 
-    def from_indices(i, j, data=None, symmetric=True):
+    def from_indices(i, j, data=None, symmetric=True, names=None):
         """ Create a sparse network from a list of edges. 
 
         i: (array of) names of source nodes
@@ -311,8 +312,11 @@ class SparseGraph(object):
         if isinstance(j, tuple):
             j = list(j)
 
-        allnames = np.union1d(i, j)
-        names = pd.Series(np.arange(allnames.shape[0], dtype=np.int), allnames)
+        if names is None:
+            allnames = np.union1d(i, j)
+            names = pd.Series(np.arange(allnames.shape[0], dtype=np.int), allnames)
+        else:
+            allnames = names.index.values
 
         if data is None:
             data = np.ones(len(i), dtype=np.int)
