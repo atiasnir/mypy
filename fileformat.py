@@ -126,3 +126,41 @@ def phosphosite(filename, organism=None, **kwds):
         tbl.drop(tbl.index[~mask], inplace=True)
 
     return tbl
+
+def obo(filename):
+    relations = []
+    terms = []
+
+    with open(filename, 'r') as f:
+        rec = None
+        for line in f:
+            if (rec is None) and line.startswith('[Term]'):
+                rec = {}
+                continue
+
+            if rec is not None:
+                if line.isspace():
+                    if (rec is not None) and ('go_id' in rec):
+                        terms.append(rec)
+                    rec = None
+                elif line.startswith('id: '):
+                    rec['go_id'] = line[4:-1]
+                elif line.startswith('is_a: '):
+                    relations .append((rec['go_id'], line[6:line.index('!', 6)-1], 'is_a'))
+                elif line.startswith('relationship: part_of '):
+                    relations .append((rec['go_id'], line[22:line.index('!', 22)-1], 'part_of'))
+                elif line.startswith('name: ' ):
+                    rec['name'] = line[6:-1]
+                elif line.startswith('description: '):
+                    rec['description'] = line[13:-1]
+                elif line.startswith('namespace: '):
+                    rec['namespace'] = line[11:-1]
+                elif line.startswith('is_obsolete: true'):
+                    rec['obsolete'] = True
+                elif line.startswith('replaced_by: '):
+                    rec['replaced_by'] = line[13:-1]
+
+    terms = pd.DataFrame(terms)
+    relations = pd.DataFrame(relations, columns=('go_id_category', 'go_id_parent', 'relation'))
+
+    return terms, relations
