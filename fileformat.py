@@ -36,3 +36,9 @@ def uniprot_mapping(filename, db=('UniProtKB-ID', 'GeneID'), raw=False, **kwd):
     
     return pd.pivot_table(raw_data, 'dbid', index='protein', columns='db',
             aggfunc=lambda x: "|".join(x)).dropna(subset=db)
+
+def inconsistent(df, db, df_cols, db_cols):
+    """given one putative (df) and on true (db) mapping
+    return the inconsistent part of df"""
+    merged = pd.merge(df, db, left_on=df_cols, right_on=db_cols, how='left')
+    return merged[merged[db_cols[0]].isnull()][df.columns]
