@@ -1,0 +1,4 @@
+DB	SPECIES	URL
+uniprot	human	ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/by_organism/HUMAN_9606_idmapping.dat.gz
+uniprot	yeast	ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/by_organism/YEAST_559292_idmapping.dat.gz
+phosphosite		http://www.phosphosite.org/downloads/Kinase_Substrate_Dataset.gz

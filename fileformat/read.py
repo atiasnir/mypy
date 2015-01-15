@@ -1,8 +1,14 @@
-"""
-download latest (human) release using
-wget ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/by_organism/HUMAN_9606_idmapping.dat.gz
-"""
+import os
 import pandas as pd
+from download import PATH, DB_PATH
+
+DB = pd.read_table(DB_PATH)
+def _get_filename(db, species=''):
+    if species == '':
+        q = 'DB == "{db}"'.format(db=db)
+    else:
+        q = 'DB == "{db}" and SPECIES == "{species}"'.format(db=db, species=species)
+    return os.path.join(PATH, DB.query(q)['FILE'].iloc[0])
 
 GENE_INFO_COLUMNS = ('tax_id', 'gene_id', 'symbol', 'locustag', 'synonyms',
                      'xrefs', 'chromosome', 'map_location', 'description',
@@ -26,11 +32,12 @@ def hippie(filename, **kwd):
 
 
 UNIPROT_IDMAPPING = ('protein', 'db', 'dbid')
-def uniprot_mapping(filename, db=('UniProtKB-ID', 'GeneID'), raw=False, **kwd):
-    defaults = {'names': UNIPROT_IDMAPPING }
+def uniprot_mapping(species, version='current', db=('UniProtKB-ID', 'GeneID'), raw=False, **kwd):
+    defaults = {'names': UNIPROT_IDMAPPING,
+            'compression': 'gzip'}
     defaults.update(kwd)
-
-    raw_data = pd.read_table(filename, **defaults)
+    filename = _get_filename("uniprot", species)
+    raw_data = pd.read_table(os.path.join(PATH, filename), **defaults)
     if raw:
         return raw_data
     
@@ -113,10 +120,12 @@ PHOSPHOSITE_COLUMNS = ('kinase', 'kinase_id', 'kinase_gene', 'location', 'kinase
                        'substrate', 'substrate_entrez', 'substrate_id', 'substrate_gene', 'substrate_organism', 
                        'substrate_residue', 'site_grp_id', 'site_amino_acids', 'in_vivo_rxn', 'in_vitro_rxn', 'cst_cat')
 
-def phosphosite(filename, organism=None, **kwds):
-    defaults = {'names': PHOSPHOSITE_COLUMNS, 'skiprows': 4}
+def phosphosite(organism=None, **kwds):
+    defaults = {'names': PHOSPHOSITE_COLUMNS, 
+            'compression' : 'gzip', 'skiprows': 4}
     defaults.update(**kwds)
 
+    filename = _get_filename('phosphosite')
     tbl = pd.read_table(filename, **defaults)
     if 'in_vivo_rxn' in tbl:
         tbl.in_vivo_rxn = tbl.in_vivo_rxn.str.startswith('X')
