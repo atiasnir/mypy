@@ -37,7 +37,7 @@ def uniprot_mapping(species, version='current', db=('UniProtKB-ID', 'GeneID'), r
             'compression': 'gzip'}
     defaults.update(kwd)
     filename = _get_filename("uniprot", species)
-    raw_data = pd.read_table(os.path.join(PATH, filename), **defaults)
+    raw_data = pd.read_table(filename, **defaults)
     if raw:
         return raw_data
     
