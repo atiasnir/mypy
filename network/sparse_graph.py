@@ -39,6 +39,21 @@ class SparseGraph(object):
             self.names = pd.Series(np.arange(names.shape[0],dtype=np.int), names)
 
         self.data = spmat
+        self.shape = spmat.shape # ugly but can't think of a better way
+
+    def __getitem__(self, key):
+        if issparse(key) or isinstance(key, np.ndarray):
+            return self.data[key]
+
+        if isinstance(key, tuple) or key in self.names.index:
+            try:
+                newkey = tuple(self.names[x] for x in key)
+                return self.data[newkey]
+            except:
+                pass
+
+        return self.data[key]
+
 
     def normalize(self, inplace=False):
         """ Normalization for propagation """
@@ -254,7 +269,7 @@ class SparseGraph(object):
         return pd.DataFrame(data=np.asarray(self.data.todense()), index=self.names.index, columns=self.names.index)
 
     @staticmethod 
-    def from_indices(i, j, data=None, symmetric=True):
+    def from_indices(i, j, data=None, symmetric=True, names=None):
         """ Create a sparse network from a list of edges. 
 
         i: (array of) names of source nodes
@@ -297,8 +312,11 @@ class SparseGraph(object):
         if isinstance(j, tuple):
             j = list(j)
 
-        allnames = np.union1d(i, j)
-        names = pd.Series(np.arange(allnames.shape[0],dtype=np.int), allnames)
+        if names is None:
+            allnames = np.union1d(i, j)
+            names = pd.Series(np.arange(allnames.shape[0], dtype=np.int), allnames)
+        else:
+            allnames = names.index.values
 
         if data is None:
             data = np.ones(len(i), dtype=np.int)
@@ -342,11 +360,16 @@ class SparseGraph(object):
         cls.__le__ = create_comp_method(csr_matrix.__le__)
 
         cls.__add__ = create_comp_method(csr_matrix.__add__, True)
+        cls.__iadd__ = create_comp_method(csr_matrix.__iadd__, True)
+        cls.__idiv__ = create_comp_method(csr_matrix.__idiv__, True)
+        cls.__itruediv__ = create_comp_method(csr_matrix.__itruediv__, True)
         cls.__radd__ = create_comp_method(csr_matrix.__radd__, True)
         cls.__sub__ = create_comp_method(csr_matrix.__sub__, True)
         cls.__rsub__ = create_comp_method(csr_matrix.__rsub__, True)
+        cls.__isub__ = create_comp_method(csr_matrix.__isub__, True)
         cls.__mul__ = create_comp_method(csr_matrix.__mul__, True)
         cls.__rmul__ = create_comp_method(csr_matrix.__rmul__, True)
+        cls.__imul__ = create_comp_method(csr_matrix.__imul__, True)
         cls.multiply = create_comp_method(csr_matrix.multiply, True)
         cls.maximum = create_comp_method(csr_matrix.maximum, True)
         cls.minimum = create_comp_method(csr_matrix.minimum, True)

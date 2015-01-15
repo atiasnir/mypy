@@ -6,10 +6,15 @@ endif
 
 # NOTE: 
 # -fno-strict-aliasing is required for cython
-CFLAGS+= -std=c++0x -Wall -fPIC -shared -O3 -fno-strict-aliasing
+CFLAGS+= -Wall -fPIC -shared -O3 -fno-strict-aliasing
+CXXFLAGS+= -std=c++0x
 
 %.cpp: %.pyx
-	cython --cplus $<
+	cython --cplus --line-directives $<
 
 %.so: %.cpp
-	$(CXX) $(CFLAGS) -o $@ $<
+	$(CXX) $(CXXFLAGS) $(CFLAGS) -o $@ $<
+
+%.so: %.c
+	$(CC) $(CFLAGS) -o $@ $<
+
