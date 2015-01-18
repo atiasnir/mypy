@@ -40,3 +40,5 @@ paths.
 1. report failed downloads
 2. allow access by date
 3. add more data sources
+4. allow for more complex data downloads, independent of `db.tab`
+5. deserialization of datasets if remained unchanged (symlink chain)

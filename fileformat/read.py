@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from download import PATH, DB_PATH
+from fileformat.download import PATH, DB_PATH
 
 DB = pd.read_table(DB_PATH)
 def _get_filename(db, species=''):
