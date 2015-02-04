@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from mypy.fileformat.download import PATH, DB_PATH
+from mypy.fileformat.update import PATH, DB_PATH
 
 DB = pd.read_table(DB_PATH)
 def _get_filename(db, species=''):
@@ -32,17 +32,18 @@ def hippie(filename, **kwd):
 
 
 UNIPROT_IDMAPPING = ('protein', 'db', 'dbid')
-def uniprot_mapping(species, version='current', db=('UniProtKB-ID', 'GeneID'), raw=False, **kwd):
+def uniprot_mapping(species, version='current', db=('UniProtKB-ID', 'GeneID'),
+        raw=False, separator='|', **kwd):
     defaults = {'names': UNIPROT_IDMAPPING,
             'compression': 'gzip'}
     defaults.update(kwd)
-    filename = _get_filename("uniprot", species)
+    filename = _get_filename('uniprot', species)
     raw_data = pd.read_table(filename, **defaults)
     if raw:
         return raw_data
     
     return pd.pivot_table(raw_data, 'dbid', index='protein', columns='db',
-            aggfunc=lambda x: "|".join(x)).dropna(subset=db)
+            aggfunc=lambda x: separator.join(x)).dropna(subset=db)
 
 def inconsistent(df, db, df_cols, db_cols):
     """given one putative (df) and on true (db) mapping
@@ -51,9 +52,10 @@ def inconsistent(df, db, df_cols, db_cols):
     return merged[merged[db_cols[0]].isnull()][df.columns]
 
 ANAT_COLUMNS = ('interactor_a', 'interactor_b', 'confidence', 'directed')
-def anat_network(filename, **kwds):
+def anat_network(**kwds):
     defaults = {'names': ANAT_COLUMNS}
     defaults.update(kwds)
+    filename = _get_filename('ANAT', 'human')
     return pd.read_table(filename, **defaults)
 
 BIOGRID_COLUMNS = ('biogrid_interaction_id', 'entrez_a', 'entrez_b',
