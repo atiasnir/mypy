@@ -11,7 +11,7 @@ import os.path
 import pandas as pd
 from mypy.pd import split_and_stack
 
-import paths
+from mypy.kegg import paths
 
 class Kegg(object):
     pass

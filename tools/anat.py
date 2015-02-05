@@ -1,6 +1,7 @@
 import pandas as pd
 import subprocess
 import tempfile
+import os
 import os.path
 
 def terminals_table(anchor, terminals):
@@ -23,7 +24,6 @@ def run(network, terminals, alpha=0.25, verbose=False):
     >>> run(n[n.confidence > 0.5], t, verbose=True)
     """
     with tempfile.TemporaryDirectory() as tmpdir:
-        tmpdir = '.'
         _out = os.path.join(tmpdir, 'out')
         network.to_csv(os.path.join(tmpdir, 'network'), index=False, sep='\t', header=None)
         terminals.to_csv(os.path.join(tmpdir, 'terminals'), index=False, sep='\t', header=None)
@@ -32,7 +32,7 @@ def run(network, terminals, alpha=0.25, verbose=False):
             '-s', 'terminals',
             '-b', '{:0.2f}'.format(alpha),
             '-f', tmpdir,
-            '-r', _out])
+            '-r', _out]) # -f flag ignored by steinprt
         if verbose:
             print(output)
         return pd.read_table(_out, sep = ' ', names = _RESULT_COLUMNS)
