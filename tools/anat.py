@@ -23,10 +23,11 @@ def run(network, terminals, alpha=0.25, verbose=False):
     >>> run(n[n.confidence > 0.5], t, verbose=True)
     """
     with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir = '.'
         _out = os.path.join(tmpdir, 'out')
         network.to_csv(os.path.join(tmpdir, 'network'), index=False, sep='\t', header=None)
         terminals.to_csv(os.path.join(tmpdir, 'terminals'), index=False, sep='\t', header=None)
-        output = subprocess.check_output(['anat',
+        output = subprocess.check_output(['steinprt',
             '-n', 'network',
             '-s', 'terminals',
             '-b', '{:0.2f}'.format(alpha),
@@ -37,8 +38,8 @@ def run(network, terminals, alpha=0.25, verbose=False):
         return pd.read_table(_out, sep = ' ', names = _RESULT_COLUMNS)
 
 def _run_example():
-    import mypy.fileformat
-    n = load_network()
+    import mypy.fileformat.read as reader
+    n = reader.anat_network()
     t = terminals_table('1017', ['2843', '1232', '1958']) # these are truly random
     result = run(n[n.confidence > 0.5], t, verbose=True)
     return result
