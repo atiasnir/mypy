@@ -37,9 +37,12 @@ def run(network, terminals, alpha=0.25, verbose=False):
             print(output)
         return pd.read_table(_out, sep = ' ', names = _RESULT_COLUMNS)
 
+def filter(network, confidence):
+    return network[network.confidence > confidence]
+
 def _run_example():
     import mypy.fileformat.read as reader
     n = reader.anat_network()
     t = terminals_table('1017', ['2843', '1232', '1958']) # these are truly random
-    result = run(n[n.confidence > 0.5], t, verbose=True)
+    result = run(filter(n, 0.5), t, verbose=True)
     return result
