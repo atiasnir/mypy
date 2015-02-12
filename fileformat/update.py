@@ -30,7 +30,7 @@ def link_static(path):
     current_path = os.path.join(_CURRENT_PATH, path)
     os.symlink(static_path, current_path)
 
-_ROOT_PATH = '/home/bnet/jandanielr/mydata'
+_ROOT_PATH = '/home/bnet/DB'
 _STATIC_PATH = 'static'
 _CURRENT_PATH = 'current'
 

@@ -181,3 +181,22 @@ def obo(filename):
     relations = pd.DataFrame(relations, columns=('go_id_category', 'go_id_parent', 'relation'))
 
     return terms, relations
+
+COSMIC_COLUMNS = ['ID_SAMPLE', 'SAMPLE_NAME', 'GENE_NAME', 'REGULATION', 'Z_SCORE', 'ID_STUDY']
+def cosmic(disease, **kwargs):
+    """ read cosmic study
+    >>> import mypy.fileformat.read as reader
+    >>> aml = reader.cosmic('AcuteMyeloidLeukemia') """
+    base_path = _get_filename('Cosmic')
+    full_path = os.path.join(base_path, disease + '.tsv')
+    df = pd.read_table(full_path, header=None, **kwargs)
+    df.columns = COSMIC_COLUMNS
+    return df
+
+def cosmic_list():
+    """ get list of available cosmic files """
+    import glob
+    base_path = _get_filename('Cosmic')
+    files = glob.glob(os.path.join(base_path, '*.tsv'))
+    names = [os.path.basename(x)[:-4] for x in files]
+    return [x for x in names if x != 'CosmicGeneExpression'] # skip big dataset
