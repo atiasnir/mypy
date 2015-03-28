@@ -127,6 +127,31 @@ def phosphosite(filename, organism=None, **kwds):
 
     return tbl
 
+SGD_FEATURES_FILE_COLUMNS = ('sgdid', 'feature_type', 'feature_qualifier',
+                             'feature_name', 'gene_name', 'alias',
+                             'parent_feature_name', 'secondary_sgdid',
+                             'chromosome', 'start_coordinate',
+                             'stop_coordinate', 'strand', 'position',
+                             'coordinate_version', 'sequence_version',
+                             'description')
+
+def sgd_features(filename, **kwds):
+    defaults = {'names': SGD_FEATURES_FILE_COLUMNS }
+    defaults.update(**kwds)
+    return pd.read_table(filename, **defaults)
+
+
+SGD_PHENOTYPE_FILE_COLUMNS = ('feature_name', 'feature_type', 'gene_name',
+                              'sgdid', 'reference', 'experiment_type',
+                              'mutant_type', 'allele', 'strain_background',
+                              'phenotype', 'chemical', 'condition', 'details',
+                              'reporter')
+def sgd_phenotype(filename, **kwds):
+    defaults = {'names': SGD_PHENOTYPE_FILE_COLUMNS }
+    defaults.update(**kwds)
+    return pd.read_table(filename, **defaults)
+
+
 def obo(filename):
     relations = []
     terms = []
