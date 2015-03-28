@@ -46,12 +46,9 @@ def merge(df1, df2, how='inner', on=None, left_on=None, right_on=None,
                       right_index=right_index, sort=sort, suffixes=suffixes,
                       copy=copy)
 
-    if how != 'inner':
-        return result;
-
     # remove columns appearing twice (due to different 'on' columns for left
     # and right)
-    if left_on != right_on:
+    if how=='inner' and left_on != right_on:
         if not hasattr(right_on, '__iter__'):
             right_on = (right_on,)
         right_cols = result.columns[df1.columns.shape[0]:]
@@ -129,6 +126,7 @@ def split_to_columns(frame, colname, sep=None, colnames=None):
     mapping = pd.DataFrame([{i: v for i,v in enumerate(x)} for x in
                              masked_frame[colname].str.split(sep).tolist()],
                              index=masked_frame.index)#.reset_index(1,drop=True)
+
     if colnames is not None:
         mapping.columns = colnames
     
