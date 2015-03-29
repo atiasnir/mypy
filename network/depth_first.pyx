@@ -5,6 +5,10 @@ from libc.stdlib cimport malloc, free
 
 import numpy as np
 
+ctypedef fused ITYPE_f:
+    int
+    long
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.nonecheck(False)
@@ -41,16 +45,16 @@ cdef struct StackEntry:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.nonecheck(False)
-cdef int _depth_first_iterative(int i_start, 
-                                int[::1] indptr, 
-                                int[::1] indices, 
-                                int[::1] order, 
-                                int[::1] predecessors, 
-                                int scipy_compat) nogil:
-    cdef int i, j
-    cdef int idx
-    cdef int n = order.shape[0]
-    cdef int order_end = 0
+cdef void _depth_first_iterative(ITYPE_f i_start, 
+                                ITYPE_f[::1] indptr, 
+                                ITYPE_f[::1] indices, 
+                                ITYPE_f[::1] order, 
+                                ITYPE_f[::1] predecessors, 
+                                ITYPE_f scipy_compat) nogil:
+    cdef ITYPE_f i, j
+    cdef ITYPE_f idx
+    cdef ITYPE_f n = order.shape[0]
+    cdef ITYPE_f order_end = 0
 
     cdef int* status = <int*> malloc(n*sizeof(int))
     cdef StackEntry* stack = <StackEntry*>malloc(n * sizeof(StackEntry))
@@ -103,7 +107,10 @@ def depth_first_order(csgraph, i_start, directed=True, return_predecessors=True,
     order = np.empty(n, dtype=np.int32)
     predecessors = np.empty(n, dtype=np.int32)
 
-    _depth_first_iterative(i_start, csgraph.indptr, csgraph.indices, order, predecessors, 1 if scipy_compat else 0)
+    if csgraph.indptr.dtype == np.int32:
+        _depth_first_iterative[int](i_start, csgraph.indptr, csgraph.indices, order, predecessors, 1 if scipy_compat else 0)
+    else:
+        _depth_first_iterative[long](i_start, csgraph.indptr, csgraph.indices, order, predecessors, 1 if scipy_compat else 0)
 
     if return_predecessors:
         return order, predecessors

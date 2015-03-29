@@ -9,8 +9,16 @@ from ..metrics import jaccard_distance
 from .random import shuffle
 
 from .mcl import mcl
-from .topological_sort import topological_sort
-from .depth_first import depth_first_order
+
+try:
+    import pyximport
+    pyximport.install()
+
+    from .topological_sort import topological_sort
+    from .depth_first import depth_first_order
+except:
+    import warnings
+    warnings.warn('Compilation with cython failed. Topological sort and DFS will not work.')
 
 class SparseGraph(object):
     """ 

@@ -3,7 +3,14 @@ import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from scipy.sparse import csr_matrix
 
-from netrand import shuffle_edges as _shuffle_edges
+try:
+    import pyximport
+    pyximport.install()
+
+    from shuffle import shuffle_edges as _shuffle_edges
+except:
+    import warnings
+    warnings.warn('Compilation with cython failed. Randomization will not work')
 
 def geometric(n, threshold=0.5, dim=5):
     """ Generate a random graph based on geometric model. 
