@@ -1,11 +1,13 @@
+#ifndef SHUFFLE_H_4PX3V27U
+#define SHUFFLE_H_4PX3V27U
+
 #include <algorithm>
 #include <random>
 #include <iostream>
 #include <iomanip>
 
-using namespace std;
-
 void change_edge(int t, int* edge, double* data, int* begin, int* end) {
+	using namespace std;
 	*edge = t;
 	while(edge < end-1 && *edge > edge[1]) {
 		swap(edge[0], edge[1]);
@@ -20,6 +22,7 @@ void change_edge(int t, int* edge, double* data, int* begin, int* end) {
 }
 
 void show_mat(const char* prefix, int nnz, int* indices, int n, int* indptr, double* data) {
+	using namespace std;
 	cout << prefix << endl;
 	for(int r=0; r<n; ++r) {
 		int col = indptr[r];
@@ -38,6 +41,7 @@ void show_mat(const char* prefix, int nnz, int* indices, int n, int* indptr, dou
 	
 
 int shuffle_edges_directed(int nnz, int* indices, int n, int* indptr, double* data, int iterations, int seed) {
+	using namespace std;
 	mt19937_64 						rng(seed);
 	uniform_int_distribution<int> 	randnnz(0, nnz-1);
 	int 							switches = 0;
@@ -88,6 +92,7 @@ int shuffle_edges_directed(int nnz, int* indices, int n, int* indptr, double* da
 }
 
 int shuffle_edges_undirected(int nnz, int* indices, int n, int* indptr, double* data, int iterations, int seed) {
+	using namespace std;
 	mt19937_64 						rng(seed);
 	uniform_int_distribution<int> 	randnnz(0, nnz-1);
 	int switches = 0;
@@ -160,155 +165,5 @@ int shuffle_edges_undirected(int nnz, int* indices, int n, int* indptr, double* 
 	return switches;
 }
 
-//----------------------------------- PYTHON ---------------------------
 
-#include <boost/python.hpp>
-
-class py_gil_release {
-public:
-    inline py_gil_release() {
-        _thread_state = PyEval_SaveThread();
-    }
-
-    inline ~py_gil_release() {
-        PyEval_RestoreThread(_thread_state);
-        _thread_state = NULL;
-    }
-
-private:
-    PyThreadState* _thread_state;
-};
-
-using namespace boost;
-
-struct pybuffer_holder {
-	Py_buffer _buffer;
-
-	pybuffer_holder() {
-	}
-
-	~pybuffer_holder() {
-		PyBuffer_Release(&_buffer);
-	}
-
-	operator Py_buffer*() {
-		return &_buffer;
-	}
-
-	Py_buffer* operator->() {
-		return &_buffer;
-	}
-};
-
-template<int N>
-bool starts_with(const string& str, const char (&constant)[N]) {
-	return strncmp(str.c_str(), constant, N-1) == 0;
-}
-
-
-int py_shuffle_edges(python::object g, bool directed, int iterations, int seed) {
-	pybuffer_holder indices_buffer;
-	pybuffer_holder indptr_buffer;
-	pybuffer_holder data_buffer;
-
-	python::object indices =  g.attr("indices");
-	python::object indptr =  g.attr("indptr");
-	python::object data =  g.attr("data");
-
-	if(PyObject_GetBuffer(indices.ptr(), indices_buffer, PyBUF_CONTIG|PyBUF_FORMAT) != 0)
-		throw runtime_error("not a buffer");
-
-	if(PyObject_GetBuffer(indptr.ptr(), indptr_buffer, PyBUF_CONTIG|PyBUF_FORMAT) != 0)
-		throw runtime_error("not a buffer");
-
-	if(PyObject_GetBuffer(data.ptr(), data_buffer, PyBUF_CONTIG|PyBUF_FORMAT) != 0)
-		throw runtime_error("not a buffer");
-
-	if(directed) {
-		return shuffle_edges_directed(indices_buffer->shape[0], (int*)indices_buffer->buf,
-				indptr_buffer->shape[0], (int*)indptr_buffer->buf,
-				(double*)data_buffer->buf, iterations, seed);
-	} else {
-		return shuffle_edges_undirected(indices_buffer->shape[0], (int*)indices_buffer->buf,
-				indptr_buffer->shape[0], (int*)indptr_buffer->buf,
-				(double*)data_buffer->buf, iterations, seed);
-	}
-}
-
-template<class T>
-std::vector<T> list_to_vector(python::object l) {
-	std::vector<T> result;
-	size_t n = python::len(l);
-	result.reserve(n);
-	
-	for(size_t idx=0; idx<n; ++idx) {
-		T value(python::extract<T>(l[idx]));
-		result.push_back(value);
-	}
-
-	//return std::move(result);
-	return result;
-}
-
-void py_sparse_to_file(python::object g, python::object file, python::object pnames, bool directed) {
-	FILE* f = PyFile_AsFile(file.ptr());
-	pybuffer_holder indices_buffer;
-	pybuffer_holder indptr_buffer;
-	pybuffer_holder data_buffer;
-
-	python::object indices =  g.attr("indices");
-	python::object indptr =  g.attr("indptr");
-	python::object data =  g.attr("data");
-
-	if(PyObject_GetBuffer(indices.ptr(), indices_buffer, PyBUF_CONTIG|PyBUF_FORMAT) != 0)
-		throw runtime_error("not a buffer");
-
-	if(PyObject_GetBuffer(indptr.ptr(), indptr_buffer, PyBUF_CONTIG|PyBUF_FORMAT) != 0)
-		throw runtime_error("not a buffer");
-
-	if(PyObject_GetBuffer(data.ptr(), data_buffer, PyBUF_CONTIG|PyBUF_FORMAT) != 0)
-		throw runtime_error("not a buffer");
-
-	vector<string> names(list_to_vector<string>(pnames));
-
-	if(directed) {
-		double* dp = (double*)data_buffer->buf;
-		int* ip = (int*)indices_buffer->buf;
-		int* colbegin = (int*)indptr_buffer->buf;
-		int* col = colbegin;
-
-		for(int nnz=0; nnz<data_buffer->shape[0]; ++nnz) {
-			while(nnz>=col[1])
-				++col;
-			int u = col - colbegin;
-			int v = *ip++;
-			double d = *dp++;
-
-			fprintf(f, "%s\t%s\t%f\t1\n", names[u].c_str(), names[v].c_str(), d);
-		}
-
-	} else {
-		double* dp = (double*)data_buffer->buf;
-		int* ip = (int*)indices_buffer->buf;
-		int* colbegin = (int*)indptr_buffer->buf;
-		int* col = colbegin;
-
-		for(int nnz=0; nnz<data_buffer->shape[0]; ++nnz) {
-			while(nnz>col[1])
-				++col;
-			int u = col - colbegin;
-			int v = *ip++;
-			double d = *dp++;
-
-			if(u<v)
-				fprintf(f, "%s\t%s\t%f\t0\n", names[u].c_str(), names[v].c_str(), d);
-		}
-
-	}
-
-}
-
-BOOST_PYTHON_MODULE(netrand) {
-	def("shuffle_edges", &py_shuffle_edges);
-	def("sparse_to_file", &py_sparse_to_file);
-}
+#endif /* end of include guard: SHUFFLE_H_4PX3V27U */
