@@ -189,3 +189,18 @@ def obo(filename):
     relations = pd.DataFrame(relations, columns=('go_id_category', 'go_id_parent', 'relation'))
 
     return terms, relations
+
+CORUM_COLUMNS = ('complex_id', 'complex_name', 'sysnonyms', 'organism', 
+                          'uniprot_gene_id', 'gene_id', 'method', 'pubmed', 
+                          'catgeories', 'func_comment', 'disesae_comment', 'subunit_comment')
+def corum(filename, use_common_columns=True, **kwds):
+    defaults = {'sep': ';',
+                'names': CORUM_COLUMNS,
+                'skiprows': 1,
+                
+                }
+    if use_common_columns:
+        defaults['usecols'] = ('complex_id', 'organism', 'uniprot_gene_id')
+
+    defaults.update(kwds)
+    return pd.read_csv(filename, **defaults)
