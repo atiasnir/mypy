@@ -317,6 +317,9 @@ class SparseGraph(object):
             names = pd.Series(np.arange(allnames.shape[0], dtype=np.int), allnames)
         else:
             allnames = names.index.values
+            mask = np.in1d(i, allnames) & np.in1d(j, allnames)
+            i = i[mask]
+            j = j[mask]
 
         if data is None:
             data = np.ones(len(i), dtype=np.int)
