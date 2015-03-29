@@ -132,10 +132,14 @@ def split_to_columns(frame, colname, sep=None, colnames=None):
     
     return frame.join(mapping)
 
-def data_uri(df, name='Download Data', format=None, **kwargs):
+def data_uri(df, name='Download Data', filename=None, format=None, **kwargs):
     defaults = {'index': False}
     defaults.update(kwargs)
-    encoded = '<a href="data:text/csv;base64,%s" target="_blank">%s</a>' % (base64.encodestring(df.to_csv(**kwargs)), name)
+
+    if filename is None:
+        filename = "data.csv"
+
+    encoded = '<a download="%s" href="data:text/csv;base64,%s" target="_blank">%s</a>' % (filename, base64.encodestring(df.to_csv(**kwargs)), name)
     if format:
         return format(encoded)
     return encoded
