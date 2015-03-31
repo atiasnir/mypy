@@ -21,6 +21,7 @@ def download(url):
     """ saves url to current folder. returns filename """
     #TODO: check that download was successful
     filename = os.path.basename(url)
+    print('downloading', filename)
     urlretrieve(url, filename)
     return filename
 
