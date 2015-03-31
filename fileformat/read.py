@@ -163,6 +163,30 @@ def regulatory_phosphosites(organism=None, **kwds):
 def disease_associated_phosphosites(organism=None, **kwds):
     return _phosphosite_extra(_get_filename('disease_associated_sites'), organism)
 
+SGD_FEATURES_FILE_COLUMNS = ('sgdid', 'feature_type', 'feature_qualifier',
+                             'feature_name', 'gene_name', 'alias',
+                             'parent_feature_name', 'secondary_sgdid',
+                             'chromosome', 'start_coordinate',
+                             'stop_coordinate', 'strand', 'position',
+                             'coordinate_version', 'sequence_version',
+                             'description')
+
+def sgd_features(filename, **kwds):
+    defaults = {'names': SGD_FEATURES_FILE_COLUMNS }
+    defaults.update(**kwds)
+    return pd.read_table(filename, **defaults)
+
+
+SGD_PHENOTYPE_FILE_COLUMNS = ('feature_name', 'feature_type', 'gene_name',
+                              'sgdid', 'reference', 'experiment_type',
+                              'mutant_type', 'allele', 'strain_background',
+                              'phenotype', 'chemical', 'condition', 'details',
+                              'reporter')
+def sgd_phenotype(filename, **kwds):
+    defaults = {'names': SGD_PHENOTYPE_FILE_COLUMNS }
+    defaults.update(**kwds)
+    return pd.read_table(filename, **defaults)
+
 def obo(filename):
     relations = []
     terms = []
@@ -219,3 +243,18 @@ def cosmic_list():
     files = glob.glob(os.path.join(base_path, '*.tsv'))
     names = [os.path.basename(x)[:-4] for x in files]
     return [x for x in names if x != 'CosmicGeneExpression'] # skip big dataset
+
+CORUM_COLUMNS = ('complex_id', 'complex_name', 'sysnonyms', 'organism', 
+                          'uniprot_gene_id', 'gene_id', 'method', 'pubmed', 
+                          'catgeories', 'func_comment', 'disesae_comment', 'subunit_comment')
+def corum(filename, use_common_columns=True, **kwds):
+    defaults = {'sep': ';',
+                'names': CORUM_COLUMNS,
+                'skiprows': 1,
+                
+                }
+    if use_common_columns:
+        defaults['usecols'] = ('complex_id', 'organism', 'uniprot_gene_id')
+
+    defaults.update(kwds)
+    return pd.read_csv(filename, **defaults)

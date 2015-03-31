@@ -9,8 +9,16 @@ from ..metrics import jaccard_distance
 from .random import shuffle
 
 from .mcl import mcl
-from .topological_sort import topological_sort
-from .depth_first import depth_first_order
+
+try:
+    import pyximport
+    pyximport.install()
+
+    from .topological_sort import topological_sort
+    from .depth_first import depth_first_order
+except:
+    import warnings
+    warnings.warn('Compilation with cython failed. Topological sort and DFS will not work.')
 
 class SparseGraph(object):
     """ 
@@ -317,6 +325,9 @@ class SparseGraph(object):
             names = pd.Series(np.arange(allnames.shape[0], dtype=np.int), allnames)
         else:
             allnames = names.index.values
+            mask = np.in1d(i, allnames) & np.in1d(j, allnames)
+            i = i[mask]
+            j = j[mask]
 
         if data is None:
             data = np.ones(len(i), dtype=np.int)

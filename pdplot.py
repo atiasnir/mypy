@@ -47,8 +47,8 @@ def na_plot(df, cluster=False):
     plt.xticks(0.5 + np.arange(mat.shape[1]), df.columns, rotation='vertical')
     plt.xlim(0,mat.shape[1])
 
-def auc_plot(scores, gold_standard, label_template=None, **kwargs):
-    fpr, tpr, _ = sklearn.metrics.roc_curve(gold_standard, scores)
+def auc_plot(scores, gold_standard, label_template=None, return_all=False, **kwargs):
+    fpr, tpr, thresholds = sklearn.metrics.roc_curve(gold_standard, scores)
     auc_score = sklearn.metrics.auc(fpr, tpr)
 
     should_add_line = len(plt.gcf().axes) == 0
@@ -61,4 +61,14 @@ def auc_plot(scores, gold_standard, label_template=None, **kwargs):
     if should_add_line:
         plt.plot([0, 1], [0, 1], 'k--')
 
-    return auc_score
+    return auc_score if not return_all else auc_score, fpr, tpr, thresholds
+
+def youden(fpr, tpr):
+    return np.nanargmax(tpr - fpr)
+
+def roc01(fpr, tpr):
+    return np.nanargmin(np.sqrt((0-fpr)**2 + (1-tpr)**2))
+
+def dor(fpr, tpr):
+    return np.nanargmax(tpr*(1-fpr)/(1-tpr)/fpr)
+    
