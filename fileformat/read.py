@@ -103,8 +103,11 @@ GENE_ASSOCIATION_COLUMNS = ('db', 'db_object_id', 'db_object_symbol',
                             'annotation_extension', 'gene_product_form_id')
 GENE_ASSOCIATION_EXPERIMENTAL_EVIDENCE = ('EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP')
 
-def go_annotation(filename, experimental=True, **kwds):
-    defaults = {'comment': '!', 'names': GENE_ASSOCIATION_COLUMNS}
+def go_annotation(species, experimental=True, **kwds):
+    filename = _get_filename('goa', species)
+    defaults = {'comment' : '!',
+            'compression' : 'gzip',
+            'names': GENE_ASSOCIATION_COLUMNS}
 
     if experimental and 'usecols' in kwds:
         kwds['usecols'] += ('evidence_code', )
@@ -143,6 +146,22 @@ def phosphosite(organism=None, **kwds):
         tbl.drop(tbl.index[~mask], inplace=True)
 
     return tbl
+
+def _phosphosite_extra(filename, organism):
+    df = pd.read_csv(filename)
+    if organism is not None:
+        if hasattr(organism, '__iter__'):
+            mask = df.ORGANISM.isin(organism)
+        else:
+            mask = df.ORGANISM == organism
+        df.drop(df.index[~mask], inplace=True)
+    return df
+
+def regulatory_phosphosites(organism=None, **kwds):
+    return _phosphosite_extra(_get_filename('regulatory_sites'), organism)
+
+def disease_associated_phosphosites(organism=None, **kwds):
+    return _phosphosite_extra(_get_filename('disease_associated_sites'), organism)
 
 def obo(filename):
     relations = []
@@ -191,7 +210,7 @@ def cosmic(disease, **kwargs):
     full_path = os.path.join(base_path, disease + '.tsv')
     df = pd.read_table(full_path, header=None, **kwargs)
     df.columns = COSMIC_COLUMNS
-    return df
+    return df.dropna() # brca and lusc have NaN rows ?!
 
 def cosmic_list():
     """ get list of available cosmic files """
