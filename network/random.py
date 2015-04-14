@@ -8,6 +8,7 @@ try:
     pyximport.install()
 
     from shuffle import shuffle_edges as _shuffle_edges
+    from shuffle import shuffle_multiple as _shuffle_multiple
 except:
     import warnings
     warnings.warn('Compilation with cython failed. Randomization will not work')
@@ -112,7 +113,7 @@ def shuffle(network, directed=False, max_iterations=None, seed=0):
         
         >>> shuffle(g, max_iterations=1)
         1
-        >>> g.todense() # 0 - 2 - 1 - 3
+        >>> g.todense().astype(np.int) # 0 - 2 - 1 - 3
         matrix([[0, 0, 1, 0],
                 [0, 0, 1, 1],
                 [1, 1, 0, 0],
@@ -125,7 +126,64 @@ def shuffle(network, directed=False, max_iterations=None, seed=0):
     if max_iterations is None:
         max_iterations = 100 * network.nnz
 
+    if network.data.dtype != np.float:
+        network.data = network.data.astype(np.float)
+
     return _shuffle_edges(network, directed, max_iterations, seed)
+
+def shuffled_copies(network, n, directed=False, max_iterations=None, seed=0):
+    """ A degree-preserving shuffling of the edges of the input network.
+        Returns multiple copies, uses multiple cpus, if available.
+
+    Parameters
+    ----------
+    network:        A square matrix representing a network. Will try to convert
+                    to csr_matrix if not already so.
+    n:              The number of random copies
+    directed:       Specify whether to treat the network as undirected (the
+                    default) or as directed. 
+    max_iterations: The maximum number of iterations to perform. Defaults to 10
+                    times the number of edges
+    seed:           A seed for the interna random number generator
+
+    Returns the shuffled networks.
+
+    Examples:
+        >>> from numpy import array
+        >>> from scipy.sparse import csr_matrix
+        >>> row = array([0,1,2])
+        >>> col = array([1,2,3])
+        >>> data = array([1,1,1])
+        >>> g = csr_matrix((data, (row, col)), shape=(4,4))
+        >>> g = g + g.T # undirected
+        >>> g.todense() # 0 - 1 - 2 - 3
+        matrix([[0, 1, 0, 0],
+                [1, 0, 1, 0],
+                [0, 1, 0, 1],
+                [0, 0, 1, 0]])
+        
+        >>> ret = shuffled_copies(g, 1, max_iterations=1, seed=[0])
+        >>> ret[0].todense().astype(np.int) # 0 - 2 - 1 - 3
+        matrix([[0, 0, 1, 0],
+                [0, 0, 1, 1],
+                [1, 1, 0, 0],
+                [0, 1, 0, 0]])
+        
+    """
+    if not isinstance(network, csr_matrix):
+        network = csr_matrix(network)
+
+    if max_iterations is None:
+        max_iterations = 100 * network.nnz
+
+    if network.data.dtype != np.float:
+        network.data = network.data.astype(np.float)
+
+    if seed == 0:
+        seed = np.random.randint(32767, size=n)
+
+    return _shuffle_multiple(network, n, directed, max_iterations, seed)
+
 
 if __name__ == '__main__':
     import doctest

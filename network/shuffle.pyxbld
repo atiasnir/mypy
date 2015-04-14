@@ -5,6 +5,7 @@ def make_ext(modname, pyxfilename):
 	return Extension(name=modname,
                      sources=[pyxfilename],
 					 include_dirs=[os.path.dirname(pyxfilename)],
-                     extra_compile_args=['-O3', '-std=c++11'],
+                     extra_compile_args=['-O3', '-std=c++0x', '-fopenmp'],
+                     extra_link_args=['-fopenmp'],
 					 libraries=['stdc++'],
 					 language='C++')

@@ -6,7 +6,7 @@ import scipy.spatial.distance as distance
 from scipy.sparse import csr_matrix, issparse, dia_matrix
 
 from ..metrics import jaccard_distance
-from .random import shuffle
+from .random import shuffle, shuffled_copies
 
 from .mcl import mcl
 
@@ -61,6 +61,14 @@ class SparseGraph(object):
                 pass
 
         return self.data[key]
+
+    def submatrix(self, keys):
+        try:
+            keys = self.names[keys]
+        except:
+            pass
+
+        return SparseGraph(self.data[keys,:][:,keys], self.names[keys])
 
 
     def normalize(self, inplace=False):
@@ -213,6 +221,12 @@ class SparseGraph(object):
         return shuffle(self.data, directed=directed,
                        max_iterations=max_iterations, seed=seed)
 
+    def shuffled_copies(self, n, directed=False, max_iterations=None, seed=0):
+        random_networks = shuffled_copies(self.data, n, directed=directed,
+                                          max_iterations=max_iterations,
+                                          seed=seed)
+        return [SparseGraph(x, self.names) for x in random_networks]
+
     def pdist(self, metric='correlation', *args, **kwargs):
 #        pd.DataFrame(1.0-pairwise_distances(holstege, metric='correlation', n_jobs=-1), 
 #                                      index=holstege.index, columns=holstege.index)
@@ -221,6 +235,38 @@ class SparseGraph(object):
         else:
             distances = distance.squareform(distance.pdist(self.data.todense(), metric, *args, **kwargs))
         return pd.DataFrame(distances, self.names.index, self.names.index)
+
+    def to_cyjs(self, node_attributes=None, symmetric=True):
+        source, target = self.data.nonzero()
+        data = self.data.data
+        if symmetric:
+            mask = source < target
+            source = source[mask]
+            target = target[mask]
+            data = data[mask]
+
+        nodes_df = pd.DataFrame({'name': self.names.index, 'id': range(self.names.shape[0])})
+        nodes_df['id'] = nodes_df['id'].astype(str)
+        if not node_attributes is None:
+            if isinstance(node_attributes, pd.DataFrame):
+                vals = nodes_df.name[nodes_df.name.isin(node_attributes.index)].apply(lambda x: node_attributes.loc[x])
+            else:
+                vals = nodes_df.name[nodes_df.name.isin(node_attributes.keys())].apply(lambda x: pd.Series(node_attributes[x])) 
+            nodes_df = nodes_df.merge(vals, how='left', left_index=True, right_index=True)
+
+        edges_df = pd.DataFrame({'source': source, 'target': target, 'value': data})
+        # hack for pandas df behavior that will turn all columns to one dtype
+        edges_df.source = edges_df.source.astype(str)
+        edges_df.target = edges_df.target.astype(str)
+
+        def map_dict(df):
+            return [{'data': x} for x in df.to_dict('records')]
+
+        import json
+
+        return json.dumps({'elements': {'nodes': map_dict(nodes_df),
+                                        'edges': map_dict(edges_df) },
+                           'data': {} }, indent=3)
 
     def to_frame(self, asmatrix=True, symmetric=True):
         """ Convert the current network to pandas.DataFrame 
