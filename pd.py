@@ -99,7 +99,7 @@ def split_and_stack(frame, colname, sep=None):
 
     return frame.drop(colname, axis=1).join(mapping)
 
-def split_to_columns(frame, colname, sep=None, colnames=None):
+def split_to_columns(frame, colname, sep=None, colnames=None, drop=False):
     """ Converts a row of delimited values in a dataframe to multiple rows.
         The resulting table is useful for joins.
 
@@ -108,10 +108,11 @@ def split_to_columns(frame, colname, sep=None, colnames=None):
         frame:   the data frame to process
         colname: the name of the column containing the delimited data
         sep:     an optional pattern for split(). if not specified split on whitespace
+        drop: remove the original column
 
         >>> import pandas as pd 
         >>> df = pd.DataFrame.from_items([('col1', ['1 2 3']), ('col2', ['a'])])
-        >>> splitted = split_to_columns(df, 'col1', ['COL1', 'COL2', 'COL3'])
+        >>> splitted = split_to_columns(df, 'col1', colnames=['COL1', 'COL2', 'COL3'], drop=True)
         >>> splitted.shape
         (1, 4)
 
@@ -129,7 +130,9 @@ def split_to_columns(frame, colname, sep=None, colnames=None):
 
     if colnames is not None:
         mapping.columns = colnames
-    
+   
+    if drop:
+        frame = frame.drop(colname, axis=1)
     return frame.join(mapping)
 
 def data_uri(df, name='Download Data', filename=None, format=None, **kwargs):
