@@ -9,12 +9,13 @@ def terminals_table(anchor, terminals):
     pd.DataFrame <anchor> <terminal>"""
     df = pd.DataFrame(terminals, columns=['terminal'])
     df['anchor'] = anchor
-    return df[['anchor', 'terminal']]
+    return df[['anchor', 'terminal']][df['anchor'] != df['terminal']]
 
 _RESULT_COLUMNS = ['interactor_a', 'interactor_b', 'confidence', 'transformed', 'directed']
-def run(network, terminals, alpha=0.25, verbose=False):
+def run(network, terminals, alpha=0.25, result_columns = _RESULT_COLUMNS, verbose=False):
     """ Run ANAT returning the network as pd.DataFrame
     Parameters:
+        network - 
         alpha - default 0.25
     Returns:
         pd.DataFrame <interactor_a> <interactor_b> <confidence> <transformed> <directed>
@@ -35,7 +36,7 @@ def run(network, terminals, alpha=0.25, verbose=False):
             '-r', _out]) # -f flag ignored by steinprt
         if verbose:
             print(output)
-        return pd.read_table(_out, sep = ' ', names = _RESULT_COLUMNS)
+        return pd.read_table(_out, sep = ' ', names = result_columns)
 
 def filter(network, confidence):
     return network[network.confidence > confidence]

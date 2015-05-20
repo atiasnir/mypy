@@ -226,15 +226,18 @@ def obo(filename):
     return terms, relations
 
 COSMIC_COLUMNS = ['ID_SAMPLE', 'SAMPLE_NAME', 'GENE_NAME', 'REGULATION', 'Z_SCORE', 'ID_STUDY']
-def cosmic(disease, **kwargs):
+def cosmic(disease, filter_incomplete_studies=True, **kwargs):
     """ read cosmic study
+    studies should report 18068 genes pre patient
     >>> import mypy.fileformat.read as reader
     >>> aml = reader.cosmic('AcuteMyeloidLeukemia') """
     base_path = _get_filename('Cosmic')
     full_path = os.path.join(base_path, disease + '.tsv')
     df = pd.read_table(full_path, header=None, **kwargs)
     df.columns = COSMIC_COLUMNS
-    return df.dropna() # brca and lusc have NaN rows ?!
+    if filter_incomplete_studies:
+        df = df.groupby('ID_SAMPLE').filter(lambda df : len(df) == 18068)
+    return df
 
 def cosmic_list():
     """ get list of available cosmic files """
@@ -243,6 +246,38 @@ def cosmic_list():
     files = glob.glob(os.path.join(base_path, '*.tsv'))
     names = [os.path.basename(x)[:-4] for x in files]
     return [x for x in names if x != 'CosmicGeneExpression'] # skip big dataset
+
+def cosmic_mutation(cancer, kind, **kwargs):
+    """ read cosmic study
+    >>> import mypy.fileformat.read as reader
+    >>> mutation_kind = reader.cosmic_mutation_kinds()[0]
+    >>> cancer = reader.cosmic_mutation_cancers(mutation_kind)[0]
+    >>> df = reader.cosmic_mutation(cancer, mutation_kind)
+    """
+    base_path = _get_filename('CosmicMutation')
+    full_path = os.path.join(base_path, '{}_{}.tsv'.format(cancer, kind))
+    df = pd.read_table(full_path, **kwargs)
+    return df
+
+def cosmic_mutation_kinds():
+    import glob
+    base_path = _get_filename('CosmicMutation')
+    files = glob.glob(os.path.join(base_path, '*.tsv'))
+    kinds = set([])
+    for x in files:
+        file = os.path.basename(x)[:-4]
+        try:
+            kinds.add(file.split('_', 1)[1])
+        except:
+            print(file)
+    return kinds
+
+def cosmic_mutation_cancers(mutation):
+    """ get list of available cosmic files filtered by mutation type"""
+    import glob
+    base_path = _get_filename('CosmicMutation')
+    files = glob.glob(os.path.join(base_path, '*{}.tsv'.format(mutation)))
+    return [os.path.basename(x)[:-4].split('_', 1)[0] for x in files]
 
 CORUM_COLUMNS = ('complex_id', 'complex_name', 'sysnonyms', 'organism', 
                           'uniprot_gene_id', 'gene_id', 'method', 'pubmed', 
