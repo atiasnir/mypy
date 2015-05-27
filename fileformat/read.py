@@ -2,8 +2,8 @@ import os
 import pandas as pd
 from mypy.fileformat.update import PATH, DB_PATH
 
-DB = pd.read_table(DB_PATH)
 def _get_filename(db, species=''):
+    DB = pd.read_table(DB_PATH)
     if species == '':
         q = 'DB == "{db}"'.format(db=db)
     else:
@@ -50,6 +50,27 @@ def inconsistent(df, db, df_cols, db_cols):
     return the inconsistent part of df"""
     merged = pd.merge(df, db, left_on=df_cols, right_on=db_cols, how='left')
     return merged[merged[db_cols[0]].isnull()][df.columns]
+
+def uniprot_humsavar(filename):
+    """
+    read amino-acid polymorphisms from
+    http://uniprot.org/docs/humsavar
+    """
+    import re
+    import io
+    out = io.StringIO()
+    out.write('\t'.join(['GENE_NAME', 'ACC', 'FTId', 'ORIGINAL',
+        'POSITION', 'MUTATED', 'VARIANT', 'dbSNP', 'DISEASE']) + '\n')
+    with open(filename) as f:
+        s = re.compile('(\S+)\s+(\S+)\s+(\S+)\s+p\.([a-zA-Z]+)(\d+)([a-zA-Z]+)\s+(\S+)\s+(\S+)\s+(.*)') # one regex to rule them all
+        for i,line in enumerate(f):
+            if i < 30: # header
+                continue
+            if line == '\n': # reached end
+                break
+            out.write('\t'.join(s.match(line.strip()).groups()) + '\n')
+    out.seek(0)
+    return pd.read_table(out, na_values='-')
 
 ANAT_COLUMNS = ('interactor_a', 'interactor_b', 'confidence', 'directed')
 def anat_network(**kwds):
