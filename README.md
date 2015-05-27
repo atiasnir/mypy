@@ -31,6 +31,14 @@ Currently the following are available:
 5. HIPPIE. Read HIPPIE network.
 6. GOA (GO association) file format.
 
+### mypy.mydb
+Always keep up to date file from different resources.
+Data is kept in `/home/bnet/DB` but can be modified
+using the `DB_PATH` variable
+
+To update the data base run `update.py`. The most up-to-date
+verision of all file will now be in `DB_PATH/current/`
+
 ### mypy.pdplot
 Adds some convenience plotting functions:
 

@@ -1,14 +1,10 @@
+""" READ all kinds of files
+
+>>> import mypy.fileformat as ff
+>>> ff.parse_your_favorite_file(filename)
+"""
 import os
 import pandas as pd
-from mypy.fileformat.update import PATH, DB_PATH
-
-def _get_filename(db, species=''):
-    DB = pd.read_table(DB_PATH)
-    if species == '':
-        q = 'DB == "{db}"'.format(db=db)
-    else:
-        q = 'DB == "{db}" and SPECIES == "{species}"'.format(db=db, species=species)
-    return os.path.join(PATH, DB.query(q)['FILE'].iloc[0])
 
 GENE_INFO_COLUMNS = ('tax_id', 'gene_id', 'symbol', 'locustag', 'synonyms',
                      'xrefs', 'chromosome', 'map_location', 'description',
@@ -32,12 +28,11 @@ def hippie(filename, **kwd):
 
 
 UNIPROT_IDMAPPING = ('protein', 'db', 'dbid')
-def uniprot_mapping(species, version='current', db=('UniProtKB-ID', 'GeneID'),
+def uniprot_mapping(filename, version='current', db=('UniProtKB-ID', 'GeneID'),
         raw=False, separator='|', **kwd):
     defaults = {'names': UNIPROT_IDMAPPING,
             'compression': 'gzip'}
     defaults.update(kwd)
-    filename = _get_filename('uniprot', species)
     raw_data = pd.read_table(filename, **defaults)
     if raw:
         return raw_data
@@ -73,10 +68,9 @@ def uniprot_humsavar(filename):
     return pd.read_table(out, na_values='-')
 
 ANAT_COLUMNS = ('interactor_a', 'interactor_b', 'confidence', 'directed')
-def anat_network(**kwds):
+def anat_network(filename, **kwds):
     defaults = {'names': ANAT_COLUMNS}
     defaults.update(kwds)
-    filename = _get_filename('ANAT', 'human')
     return pd.read_table(filename, **defaults)
 
 BIOGRID_COLUMNS = ('biogrid_interaction_id', 'entrez_a', 'entrez_b',
@@ -124,8 +118,7 @@ GENE_ASSOCIATION_COLUMNS = ('db', 'db_object_id', 'db_object_symbol',
                             'annotation_extension', 'gene_product_form_id')
 GENE_ASSOCIATION_EXPERIMENTAL_EVIDENCE = ('EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP')
 
-def go_annotation(species, experimental=True, **kwds):
-    filename = _get_filename('goa', species)
+def go_annotation(filename, experimental=True, **kwds):
     defaults = {'comment' : '!',
             'compression' : 'gzip',
             'names': GENE_ASSOCIATION_COLUMNS}
@@ -146,12 +139,11 @@ PHOSPHOSITE_COLUMNS = ('kinase', 'kinase_id', 'kinase_gene', 'location', 'kinase
                        'substrate', 'substrate_entrez', 'substrate_id', 'substrate_gene', 'substrate_organism', 
                        'substrate_residue', 'site_grp_id', 'site_amino_acids', 'in_vivo_rxn', 'in_vitro_rxn', 'cst_cat')
 
-def phosphosite(organism=None, **kwds):
+def phosphosite(filename, organism=None, **kwds):
     defaults = {'names': PHOSPHOSITE_COLUMNS, 
             'compression' : 'gzip', 'skiprows': 4}
     defaults.update(**kwds)
 
-    filename = _get_filename('phosphosite')
     tbl = pd.read_table(filename, **defaults)
     if 'in_vivo_rxn' in tbl:
         tbl.in_vivo_rxn = tbl.in_vivo_rxn.str.startswith('X')
@@ -178,11 +170,11 @@ def _phosphosite_extra(filename, organism):
         df.drop(df.index[~mask], inplace=True)
     return df
 
-def regulatory_phosphosites(organism=None, **kwds):
-    return _phosphosite_extra(_get_filename('regulatory_sites'), organism)
+def regulatory_phosphosites(filename, organism=None, **kwds):
+    return _phosphosite_extra(filename, organism)
 
-def disease_associated_phosphosites(organism=None, **kwds):
-    return _phosphosite_extra(_get_filename('disease_associated_sites'), organism)
+def disease_associated_phosphosites(filename, organism=None, **kwds):
+    return _phosphosite_extra(filename, organism)
 
 SGD_FEATURES_FILE_COLUMNS = ('sgdid', 'feature_type', 'feature_qualifier',
                              'feature_name', 'gene_name', 'alias',
@@ -247,12 +239,11 @@ def obo(filename):
     return terms, relations
 
 COSMIC_COLUMNS = ['ID_SAMPLE', 'SAMPLE_NAME', 'GENE_NAME', 'REGULATION', 'Z_SCORE', 'ID_STUDY']
-def cosmic(disease, filter_incomplete_studies=True, **kwargs):
+def cosmic(base_path, disease, filter_incomplete_studies=True, **kwargs):
     """ read cosmic study
     studies should report 18068 genes pre patient
     >>> import mypy.fileformat.read as reader
-    >>> aml = reader.cosmic('AcuteMyeloidLeukemia') """
-    base_path = _get_filename('Cosmic')
+    >>> aml = reader.cosmic('db/Cosmic', 'AcuteMyeloidLeukemia') """
     full_path = os.path.join(base_path, disease + '.tsv')
     df = pd.read_table(full_path, header=None, **kwargs)
     df.columns = COSMIC_COLUMNS
@@ -260,29 +251,31 @@ def cosmic(disease, filter_incomplete_studies=True, **kwargs):
         df = df.groupby('ID_SAMPLE').filter(lambda df : len(df) == 18068)
     return df
 
-def cosmic_list():
-    """ get list of available cosmic files """
+def cosmic_list(base_path):
+    """ get list of available cosmic files
+    >>> reader.cosmic_list('db/Cosmic')
+    """
     import glob
-    base_path = _get_filename('Cosmic')
     files = glob.glob(os.path.join(base_path, '*.tsv'))
     names = [os.path.basename(x)[:-4] for x in files]
     return [x for x in names if x != 'CosmicGeneExpression'] # skip big dataset
 
-def cosmic_mutation(cancer, kind, **kwargs):
+def cosmic_mutation(base_path, cancer, kind, **kwargs):
     """ read cosmic study
     >>> import mypy.fileformat.read as reader
-    >>> mutation_kind = reader.cosmic_mutation_kinds()[0]
-    >>> cancer = reader.cosmic_mutation_cancers(mutation_kind)[0]
-    >>> df = reader.cosmic_mutation(cancer, mutation_kind)
+    >>> mutation_kind = reader.cosmic_mutation_kinds('db/CosmicMutations')[0]
+    >>> cancer = reader.cosmic_mutation_cancers('db/CosmicMutations', mutation_kind)[0]
+    >>> df = reader.cosmic_mutation('db/CosmicMutations', cancer, mutation_kind)
     """
-    base_path = _get_filename('CosmicMutation')
     full_path = os.path.join(base_path, '{}_{}.tsv'.format(cancer, kind))
     df = pd.read_table(full_path, **kwargs)
     return df
 
-def cosmic_mutation_kinds():
+def cosmic_mutation_kinds(base_path):
+    """ retrieve all mutations types
+    >>> reader.cosmic_mutation_types('db/Cosmic')
+    """
     import glob
-    base_path = _get_filename('CosmicMutation')
     files = glob.glob(os.path.join(base_path, '*.tsv'))
     kinds = set([])
     for x in files:
@@ -293,10 +286,9 @@ def cosmic_mutation_kinds():
             print(file)
     return kinds
 
-def cosmic_mutation_cancers(mutation):
+def cosmic_mutation_cancers(base_path, mutation):
     """ get list of available cosmic files filtered by mutation type"""
     import glob
-    base_path = _get_filename('CosmicMutation')
     files = glob.glob(os.path.join(base_path, '*{}.tsv'.format(mutation)))
     return [os.path.basename(x)[:-4].split('_', 1)[0] for x in files]
 

@@ -20,15 +20,11 @@ or if species-unspecific
 
     DB<tab><tab>URL
 
-## Reading fileformats `read.py`
+## Reading fileformats `mypy.fileformats.py`
 
 Any fileformat reader is implemented here. Note that `pandas` can be used to
 read compressed files by providing `compression=...` to the `read_*(...)`
-procedure. In order to access the current filename use
-
-    filename = _get_filename(DB, SPECIES)
-
-as defined in `db.tab`
+procedure.
 
 ## Configuration `download.py`
 
