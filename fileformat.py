@@ -152,10 +152,10 @@ def phosphosite(filename, organism=None, **kwds):
         tbl.in_vitro_rxn = tbl.in_vitro_rxn.str.startswith('X')
 
     if organism is not None:
-        if hasattr(organism, '__iter__'):
-            mask = tbl.kinase_organism.isin(organism) & tbl.substrate_organism.isin(organism)
-        else:
+        if type(organism) is str:
             mask = (tbl.kinase_organism == organism) & (tbl.substrate_organism == organism)
+        else:
+            mask = tbl.kinase_organism.isin(organism) & tbl.substrate_organism.isin(organism)
         tbl.drop(tbl.index[~mask], inplace=True)
 
     return tbl
