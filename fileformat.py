@@ -28,7 +28,7 @@ def hippie(filename, **kwd):
 
 
 UNIPROT_IDMAPPING = ('protein', 'db', 'dbid')
-def uniprot_mapping(filename, version='current', db=('UniProtKB-ID', 'GeneID'),
+def uniprot_mapping(filename, db=('UniProtKB-ID', 'GeneID'),
         raw=False, separator='|', **kwd):
     defaults = {'names': UNIPROT_IDMAPPING,
             'compression': 'gzip'}
