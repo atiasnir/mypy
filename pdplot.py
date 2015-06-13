@@ -36,7 +36,8 @@ def _cluster_idx(df):
     return rows,cols
 
 def na_plot(df, cluster=False):
-    """ pandas.DataFrame plot missing (NaN) values """
+    """ pandas.DataFrame plot missing (NaN) values
+    might fail if data dtypes are not float64 """
     mat = pd.DataFrame(~np.isnan(df.values))
     if cluster:
         rows, cols = _cluster_idx(mat)

@@ -1,7 +1,9 @@
+""" READ all kinds of files
+
+>>> import mypy.fileformat as ff
+>>> ff.parse_your_favorite_file(filename)
 """
-download latest (human) release using
-wget ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/by_organism/HUMAN_9606_idmapping.dat.gz
-"""
+import os
 import pandas as pd
 
 GENE_INFO_COLUMNS = ('tax_id', 'gene_id', 'symbol', 'locustag', 'synonyms',
@@ -26,16 +28,44 @@ def hippie(filename, **kwd):
 
 
 UNIPROT_IDMAPPING = ('protein', 'db', 'dbid')
-def uniprot_mapping(filename, db=('UniProtKB-ID', 'GeneID'), raw=False, **kwd):
-    defaults = {'names': UNIPROT_IDMAPPING }
+def uniprot_mapping(filename, db=('UniProtKB-ID', 'GeneID'),
+        raw=False, separator='|', **kwd):
+    defaults = {'names': UNIPROT_IDMAPPING,
+            'compression': 'gzip'}
     defaults.update(kwd)
-
     raw_data = pd.read_table(filename, **defaults)
     if raw:
         return raw_data
     
     return pd.pivot_table(raw_data, 'dbid', index='protein', columns='db',
-            aggfunc=lambda x: "|".join(x)).dropna(subset=db)
+            aggfunc=lambda x: separator.join(x)).dropna(subset=db)
+
+def inconsistent(df, db, df_cols, db_cols):
+    """given one putative (df) and on true (db) mapping
+    return the inconsistent part of df"""
+    merged = pd.merge(df, db, left_on=df_cols, right_on=db_cols, how='left')
+    return merged[merged[db_cols[0]].isnull()][df.columns]
+
+def uniprot_humsavar(filename):
+    """
+    read amino-acid polymorphisms from
+    http://uniprot.org/docs/humsavar
+    """
+    import re
+    import io
+    out = io.StringIO()
+    out.write('\t'.join(['GENE_NAME', 'ACC', 'FTId', 'ORIGINAL',
+        'POSITION', 'MUTATED', 'VARIANT', 'dbSNP', 'DISEASE']) + '\n')
+    with open(filename) as f:
+        s = re.compile('(\S+)\s+(\S+)\s+(\S+)\s+p\.([a-zA-Z]+)(\d+)([a-zA-Z]+)\s+(\S+)\s+(\S+)\s+(.*)') # one regex to rule them all
+        for i,line in enumerate(f):
+            if i < 30: # header
+                continue
+            if line == '\n': # reached end
+                break
+            out.write('\t'.join(s.match(line.strip()).groups()) + '\n')
+    out.seek(0)
+    return pd.read_table(out, na_values='-')
 
 ANAT_COLUMNS = ('interactor_a', 'interactor_b', 'confidence', 'directed')
 def anat_network(filename, **kwds):
@@ -89,7 +119,9 @@ GENE_ASSOCIATION_COLUMNS = ('db', 'db_object_id', 'db_object_symbol',
 GENE_ASSOCIATION_EXPERIMENTAL_EVIDENCE = ('EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP')
 
 def go_annotation(filename, experimental=True, **kwds):
-    defaults = {'comment': '!', 'names': GENE_ASSOCIATION_COLUMNS}
+    defaults = {'comment' : '!',
+            'compression' : 'gzip',
+            'names': GENE_ASSOCIATION_COLUMNS}
 
     if experimental and 'usecols' in kwds:
         kwds['usecols'] += ('evidence_code', )
@@ -108,7 +140,8 @@ PHOSPHOSITE_COLUMNS = ('kinase', 'kinase_id', 'kinase_gene', 'location', 'kinase
                        'substrate_residue', 'site_grp_id', 'site_amino_acids', 'in_vivo_rxn', 'in_vitro_rxn', 'cst_cat')
 
 def phosphosite(filename, organism=None, **kwds):
-    defaults = {'names': PHOSPHOSITE_COLUMNS, 'skiprows': 4}
+    defaults = {'names': PHOSPHOSITE_COLUMNS, 
+            'compression' : 'gzip', 'skiprows': 4}
     defaults.update(**kwds)
 
     tbl = pd.read_table(filename, **defaults)
@@ -119,13 +152,29 @@ def phosphosite(filename, organism=None, **kwds):
         tbl.in_vitro_rxn = tbl.in_vitro_rxn.str.startswith('X')
 
     if organism is not None:
-        if hasattr(organism, '__iter__'):
-            mask = tbl.kinase_organism.isin(organism) & tbl.substrate_organism.isin(organism)
-        else:
+        if type(organism) is str:
             mask = (tbl.kinase_organism == organism) & (tbl.substrate_organism == organism)
+        else:
+            mask = tbl.kinase_organism.isin(organism) & tbl.substrate_organism.isin(organism)
         tbl.drop(tbl.index[~mask], inplace=True)
 
     return tbl
+
+def _phosphosite_extra(filename, organism):
+    df = pd.read_csv(filename)
+    if organism is not None:
+        if hasattr(organism, '__iter__'):
+            mask = df.ORGANISM.isin(organism)
+        else:
+            mask = df.ORGANISM == organism
+        df.drop(df.index[~mask], inplace=True)
+    return df
+
+def regulatory_phosphosites(filename, organism=None, **kwds):
+    return _phosphosite_extra(filename, organism)
+
+def disease_associated_phosphosites(filename, organism=None, **kwds):
+    return _phosphosite_extra(filename, organism)
 
 SGD_FEATURES_FILE_COLUMNS = ('sgdid', 'feature_type', 'feature_qualifier',
                              'feature_name', 'gene_name', 'alias',
@@ -150,7 +199,6 @@ def sgd_phenotype(filename, **kwds):
     defaults = {'names': SGD_PHENOTYPE_FILE_COLUMNS }
     defaults.update(**kwds)
     return pd.read_table(filename, **defaults)
-
 
 def obo(filename):
     relations = []
@@ -189,6 +237,60 @@ def obo(filename):
     relations = pd.DataFrame(relations, columns=('go_id_category', 'go_id_parent', 'relation'))
 
     return terms, relations
+
+COSMIC_COLUMNS = ['ID_SAMPLE', 'SAMPLE_NAME', 'GENE_NAME', 'REGULATION', 'Z_SCORE', 'ID_STUDY']
+def cosmic(base_path, disease, filter_incomplete_studies=True, **kwargs):
+    """ read cosmic study
+    studies should report 18068 genes pre patient
+    >>> import mypy.fileformat.read as reader
+    >>> aml = reader.cosmic('db/Cosmic', 'AcuteMyeloidLeukemia') """
+    full_path = os.path.join(base_path, disease + '.tsv')
+    df = pd.read_table(full_path, header=None, **kwargs)
+    df.columns = COSMIC_COLUMNS
+    if filter_incomplete_studies:
+        df = df.groupby('ID_SAMPLE').filter(lambda df : len(df) == 18068)
+    return df
+
+def cosmic_list(base_path):
+    """ get list of available cosmic files
+    >>> reader.cosmic_list('db/Cosmic')
+    """
+    import glob
+    files = glob.glob(os.path.join(base_path, '*.tsv'))
+    names = [os.path.basename(x)[:-4] for x in files]
+    return [x for x in names if x != 'CosmicGeneExpression'] # skip big dataset
+
+def cosmic_mutation(base_path, cancer, kind, **kwargs):
+    """ read cosmic study
+    >>> import mypy.fileformat.read as reader
+    >>> mutation_kind = reader.cosmic_mutation_kinds('db/CosmicMutations')[0]
+    >>> cancer = reader.cosmic_mutation_cancers('db/CosmicMutations', mutation_kind)[0]
+    >>> df = reader.cosmic_mutation('db/CosmicMutations', cancer, mutation_kind)
+    """
+    full_path = os.path.join(base_path, '{}_{}.tsv'.format(cancer, kind))
+    df = pd.read_table(full_path, **kwargs)
+    return df
+
+def cosmic_mutation_kinds(base_path):
+    """ retrieve all mutations types
+    >>> reader.cosmic_mutation_types('db/Cosmic')
+    """
+    import glob
+    files = glob.glob(os.path.join(base_path, '*.tsv'))
+    kinds = set([])
+    for x in files:
+        file = os.path.basename(x)[:-4]
+        try:
+            kinds.add(file.split('_', 1)[1])
+        except:
+            print(file)
+    return kinds
+
+def cosmic_mutation_cancers(base_path, mutation):
+    """ get list of available cosmic files filtered by mutation type"""
+    import glob
+    files = glob.glob(os.path.join(base_path, '*{}.tsv'.format(mutation)))
+    return [os.path.basename(x)[:-4].split('_', 1)[0] for x in files]
 
 CORUM_COLUMNS = ('complex_id', 'complex_name', 'sysnonyms', 'organism', 
                           'uniprot_gene_id', 'gene_id', 'method', 'pubmed', 
